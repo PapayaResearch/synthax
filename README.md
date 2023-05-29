@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/synthax.svg)](https://badge.fury.io/py/synthax)
 [![Paper](http://img.shields.io/badge/paper-arxiv.2212.04180-B31B1B.svg)]()
 
-Do you want to leverage massive vectorization and high-throughput accelerators for modular synthesizers? `synthax` allows you to leverage JAX, XLA compilation and auto-vectorization/parallelization with your favorite accelerators. You can get started here 👉 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
+Do you want to leverage massive vectorization and high-throughput accelerators for modular synthesizers? `synthax` allows you to leverage JAX, XLA compilation and auto-vectorization/parallelization with your favorite accelerators. You can get started here: [![Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
 
 ## Basic `synthax` API Usage
 
@@ -33,7 +33,7 @@ In order to use JAX on your accelerators, you can find more details in the [JAX 
 
 ## Acknowledgements & Citing
 
-If you use `synthax` in your research, please cite the following [paper](https://arxiv.org/abs/2212.04180):
+If you use `synthax` in your research, please cite the following:
 
 ```
 @software{synthax2023,
