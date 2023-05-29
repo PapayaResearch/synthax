@@ -36,13 +36,12 @@ In order to use JAX on your accelerators, you can find more details in the [JAX 
 If you use `synthax` in your research, please cite the following [paper](https://arxiv.org/abs/2212.04180):
 
 ```
-@misc{YourGitHubUserName2023,
+@software{synthax2023,
   author = {Cherep, Manuel and Singh, Nikhil},
   title = {SynthAX: A fast modular synthesizer in JAX},
+  url = {https://github.com/PapayaResearch/synthax},
+  version = {0.1.0},
   year = {2023},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/PapayaResearch/synthax}}
 }
 ```
 
