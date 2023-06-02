@@ -4,8 +4,8 @@
 ![PyPI - License](https://img.shields.io/pypi/l/synthax)
 
 <h1 align="center">
-  <a href="https://github.com/PapayaResearch/synthax/blob/main/docs/logo.png">
-    <img src="https://github.com/PapayaResearch/synthax/blob/main/docs/logo.png?raw=true" width="215" /></a><br>
+  <a href="https://github.com/PapayaResearch/synthax/blob/main/media/logo.png">
+    <img src="https://github.com/PapayaResearch/synthax/blob/main/media/logo.png?raw=true" width="215" /></a><br>
 </h1>
 
 Do you want to leverage massive vectorization and high-throughput accelerators for modular synthesizers? `synthax` allows you to leverage JAX, XLA compilation and auto-vectorization/parallelization with your favorite accelerators. You can get started here: [![Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
