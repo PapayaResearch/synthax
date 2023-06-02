@@ -1,7 +1,12 @@
 # SynthAX: A fast modular synthesizer in JAX ⚡️
 [![Pyversions](https://img.shields.io/pypi/pyversions/synthax.svg?style=flat-square)](https://pypi.python.org/pypi/synthax)
 [![PyPI version](https://badge.fury.io/py/synthax.svg)](https://badge.fury.io/py/synthax)
-[![Paper](http://img.shields.io/badge/paper-arxiv.2212.04180-B31B1B.svg)]()
+![PyPI - License](https://img.shields.io/pypi/l/synthax)
+
+<h1 align="center">
+  <a href="https://github.com/PapayaResearch/synthax/blob/main/docs/logo.png">
+    <img src="https://github.com/PapayaResearch/synthax/blob/main/docs/logo.png?raw=true" width="215" /></a><br>
+</h1>
 
 Do you want to leverage massive vectorization and high-throughput accelerators for modular synthesizers? `synthax` allows you to leverage JAX, XLA compilation and auto-vectorization/parallelization with your favorite accelerators. You can get started here: [![Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
 
