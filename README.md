@@ -22,7 +22,7 @@ rng = jax.random.PRNGKey(42)
 
 ## Installation
 
-The latest `synhtax` release can directly be installed from PyPI:
+The latest `synthax` release can directly be installed from PyPI:
 
 ```
 pip install synthax
