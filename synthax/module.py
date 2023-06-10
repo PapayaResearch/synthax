@@ -133,6 +133,11 @@ class SynthModule(nn.Module):
         """ Size of the module output in samples. """
         return self.config.buffer_size
 
+    @property
+    def control_buffer_size(self):
+        """ Size of the module output in samples. """
+        return self.config.control_buffer_size
+
     def to_buffer_size(self, signal: Signal) -> Signal:
         """
         Fixes the length of a signal to the default buffer size of this module,
@@ -142,7 +147,7 @@ class SynthModule(nn.Module):
         Args:
             signal (TODO): A signal to pad or truncate.
         """
-        return fix_length(signal, self.buffer_size)
+        return fix_length(signal, self.control_buffer_size)
 
     def seconds_to_samples(self, seconds: float):
         """
@@ -341,12 +346,12 @@ class ADSR(ControlRateModule):
             start (TODO): Initial delay of ramp in seconds.
             inverse (TODO): Toggle to flip the ramp from ascending to descending.
         """
-
-        duration = self.seconds_to_samples(duration)
+        
+        duration = jnp.expand_dims(self.seconds_to_samples(duration), axis=1)
 
         # Convert to number of samples.
         if start is not None:
-            start = self.seconds_to_samples(start)
+            start = jnp.expand_dims(self.seconds_to_samples(start), axis=1)
         else:
             start = 0.0
 
@@ -372,7 +377,10 @@ class ADSR(ControlRateModule):
             ramp = jnp.where(duration > 0.0, 1.0 - ramp, ramp)
 
         # Apply scaling factor.
-        ramp = jnp.power(ramp, self.parameters["alpha"].from_0to1())
+        ramp = jnp.power(
+            ramp,
+            jnp.expand_dims(self.parameters["alpha"].from_0to1(), axis=1)
+        )
         return ramp
 
     def make_attack(self, attack_time) -> Signal:
@@ -392,7 +400,7 @@ class ADSR(ControlRateModule):
             attack_time (TODO): Length of the attack in seconds.
             decay_time (TODO): Length of the decay time in seconds.
         """
-        sustain = self.parameters["sustain"].from_0to1()
+        sustain = jnp.expand_dims(self.parameters["sustain"].from_0to1(), axis=1)
         a = 1.0 - sustain
         b = self.ramp(decay_time, start=attack_time, inverse=True)
         return jnp.squeeze(a * b + sustain)
@@ -477,7 +485,10 @@ class VCO(SynthModule):
 
         control_as_frequency = self.make_control_as_frequency(midi_f0, mod_signal)
         cosine_argument = self.make_argument(control_as_frequency)
-        cosine_argument += self.parameters["initial_phase"].from_0to1()
+        cosine_argument += jnp.expand_dims(
+            self.parameters["initial_phase"].from_0to1(),
+            axis=1
+        )
         signal = self.oscillator(cosine_argument, midi_f0)
         return self.to_buffer_size(signal)
 
@@ -494,7 +505,9 @@ class VCO(SynthModule):
             midi_f0 (TODO): Fundamental pitch value in midi.
             mod_signal (TODO): Pitch modulation signal in midi.
         """
-        midi_f0 = (midi_f0 + self.parameters["tuning"].from_0to1())
+        midi_f0 = jnp.expand_dims(
+            midi_f0 + self.parameters["tuning"].from_0to1(),
+            axis=1)
 
         # If there is no modulation, then convert the midi_f0 values to
         # frequency and return an expanded view that contains buffer size
@@ -505,7 +518,10 @@ class VCO(SynthModule):
 
         # If there is modulation, then add that to the fundamental,
         # clamp to a range [0.0, 127.0], then return in frequency Hz.
-        modulation = self.parameters["mod_depth"].from_0to1() * mod_signal
+        modulation = jnp.expand_dims(
+            self.parameters["mod_depth"].from_0to1(),
+            axis=1
+        )* mod_signal
         control = jax.lax.clamp(0.0, midi_f0 + modulation, 127.0)
         return midi_to_hz(control)
 
@@ -598,8 +614,16 @@ class FmVCO(VCO):
             mod_signal (TODO): FM modulation signal (interpreted as modulation index).
         """
         # Compute modulation in Hz space (rather than midi-space).
-        f0_hz = midi_to_hz(midi_f0 + self.parameters["tuning"].from_0to1())
-        fm_depth = self.parameters["mod_depth"].from_0to1() * f0_hz
+        f0_hz = midi_to_hz(
+            jnp.expand_dims(
+                midi_f0 + self.parameters["tuning"].from_0to1(),
+                axis=1
+            )
+        )
+        fm_depth = jnp.expand_dims(
+            self.parameters["mod_depth"].from_0to1(),
+            axis=1
+        )* f0_hz
         modulation_hz = fm_depth * mod_signal
         return jax.lax.clamp(0.0, f0_hz + modulation_hz, self.nyquist)
 
@@ -664,9 +688,9 @@ class SquareSawVCO(VCO):
             argument (TODO): The phase of the oscillator at each time sample.
             midi_f0 (TODO): Fundamental frequency in midi.
         """
-        partials = self.partials_constant(midi_f0)
+        partials = jnp.expand_dims(self.partials_constant(midi_f0), axis=1)
         square = jnp.tanh(jnp.pi * partials * jnp.sin(argument) / 2)
-        shape = self.parameters["shape"].from_0to1()
+        shape = jnp.expand_dims(self.parameters["shape"].from_0to1(), axis=1)
         return (1 - shape / 2) * square * (1 + shape * jnp.cos(argument))
 
     def partials_constant(self, midi_f0):
@@ -860,7 +884,10 @@ class LFO(ControlRateModule):
         # Create frequency signal
         frequency = self.make_control(mod_signal)
         argument = jnp.cumsum(2 * jnp.pi * frequency / self.control_rate, axis=1)
-        argument += self.parameters["initial_phase"].from_0to1()
+        argument += jnp.expand_dims(
+            self.parameters["initial_phase"].from_0to1(),
+            axis=1
+        )
 
         # Get LFO shapes
         shapes = jnp.stack(self.make_lfo_shapes(argument), axis=1)
@@ -873,7 +900,7 @@ class LFO(ControlRateModule):
         mode = jnp.power(mode, self.exponent)
         mode /= jnp.sum(mode, axis=1, keepdims=True)
 
-        signal = jnp.matmul(mode, shapes).squeeze(1)
+        signal = jnp.matmul(jnp.expand_dims(mode, axis=1), shapes).squeeze(1)
         return self.to_buffer_size(signal)
 
     def make_control(self, mod_signal: Optional[Signal] = None) -> Signal:
@@ -884,14 +911,20 @@ class LFO(ControlRateModule):
             mod_signal (TODO): Modulation signal in Hz. Positive values increase the
                 LFO base rate; negative values decrease it.
         """
-        frequency = self.parameters["initial_phase"].from_0to1()
+        frequency = jnp.expand_dims(
+            self.parameters["initial_phase"].from_0to1(),
+            axis=1
+        )
 
         # If no modulation, then return a view of the frequency of this
         # LFO expanded to the control buffer size
         if mod_signal is None:
             return jnp.broadcast_to(frequency, (-1, self.control_buffer_size))
 
-        modulation = self.parameters["mod_depth"].from_0to1() * mod_signal
+        modulation = jnp.expand_dims(
+            self.parameters["mod_depth"].from_0to1(), axis=1
+        ) * mod_signal
+
         return jnp.maximum(frequency + modulation, 0.0)
 
     def make_lfo_shapes(
