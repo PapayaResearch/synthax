@@ -133,11 +133,6 @@ class SynthModule(nn.Module):
         """ Size of the module output in samples. """
         return self.config.buffer_size
 
-    @property
-    def control_buffer_size(self):
-        """ Size of the module output in samples. """
-        return self.config.control_buffer_size
-
     def to_buffer_size(self, signal: Signal) -> Signal:
         """
         Fixes the length of a signal to the default buffer size of this module,
@@ -147,7 +142,7 @@ class SynthModule(nn.Module):
         Args:
             signal (TODO): A signal to pad or truncate.
         """
-        return fix_length(signal, self.control_buffer_size)
+        return fix_length(signal, self.buffer_size)
 
     def seconds_to_samples(self, seconds: float):
         """
@@ -346,7 +341,7 @@ class ADSR(ControlRateModule):
             start (TODO): Initial delay of ramp in seconds.
             inverse (TODO): Toggle to flip the ramp from ascending to descending.
         """
-        
+
         duration = jnp.expand_dims(self.seconds_to_samples(duration), axis=1)
 
         # Convert to number of samples.
