@@ -92,110 +92,6 @@ class BaseSynth(nn.Module):
     def buffer_size_seconds(self):
         return self.config.buffer_size_seconds
 
-    def get_parameters(self) -> OrderedDictType[Tuple[str, str], ModuleParameter]:
-        """
-        Returns a dictionary of
-        :class:`~synthax.parameter.ModuleParameterRange` for this synth,
-        keyed on a tuple of the :class:`~synthax.module.SynthModule` name
-        and the parameter name.
-        """
-
-        # Each parameter in this synth will have a unique combination of module name
-        # and parameter name -- create a dictionary keyed on that.
-        parameters = []
-        for name, module in self:
-            # TODO: module.parameters() doesn't exist by default
-            for parameter in module.params():
-                parameters.append(
-                    ((module_name, parameter.parameter_name),
-                     parameter)
-                )
-
-        return OrderedDict(parameters)
-
-    def set_parameters(self, params: Dict[Tuple[str, str], float]):
-        """
-        Set various :class:`~synthax.parameter.ModuleParameter` for this synth.
-
-        Args:
-            params: Module and parameter strings, with the corresponding value.
-        """
-        for (module_name, param_name), value in params.items():
-            module = getattr(self, module_name)
-            module.set_parameter(param_name, value)
-
-    @property
-    def hyperparameters(self) -> OrderedDictType[Tuple[str, str, str], Any]:
-        """
-        Returns a dictionary of curve and symmetry hyperparameter values keyed
-        on a tuple of the module name, parameter name, and hyperparameter name
-        """
-        hparams = []
-        # TODO: Get parameters directly from the Module
-        for (module_name, parameter_name), parameter in self.get_parameters().items():
-            hparams.append(
-                (
-                    (module_name, parameter_name, "curve"),
-                    parameter.parameter_range.curve,
-                )
-            )
-            hparams.append(
-                (
-                    (module_name, parameter_name, "symmetric"),
-                    parameter.parameter_range.symmetric,
-                )
-            )
-
-        return OrderedDict(hparams)
-
-    def set_hyperparameter(self, hyperparameter: Tuple[str, str, str], value: Any):
-        """
-        Set a hyperparameter. Pass in the module name, parameter name, and
-        hyperparameter to set, and the value to set it to.
-
-        Args:
-            hyperparameter (TODO): Hyperparameter defined as the module name,
-                parameter name and the type (curve/symmetric)
-            value (float | bool): Value of the hyperparameter
-        """
-        #  TODO: Find a name for "hp" to define curve or symmetric
-        # e.g. "adsr_1", "attack", "curve"
-        module_name, parameter_name, hp  = hyperparameter
-        module = getattr(self, module_name)
-        parameter = module.get_parameter(parameter_name)
-        setattr(parameter.parameter_range, hp, value)
-
-    def save_synth(self, filename: str = 'conf/voice.yaml', indent: int = 4):
-        """
-        Save the synthesizer to a YAML file
-
-        Args:
-            filename (str): Saving path
-            indent (int): Number of spaces to use as indentation
-        """
-
-        # e.g. key = ["adsr_1", "attack", "curve"]
-        # hp = [{"name": key, "value": val} for key, val in self.hyperparameters.items()]
-
-        with open(os.path.abspath(filename), 'w') as f:
-            yaml.dump(self.modules, f, indent)
-
-    def load_hyperparameters(self, filename: str) -> None:
-        """
-        Load hyperparameters from a YAML file
-
-        Args:
-            filename (str): YAML file containing the hyperparameters of a synth.
-        """
-        # TODO: Load from YAML file
-        with open(os.path.abspath(filename), "r") as f:
-            hyperparameters = json.load(f)
-
-        # Update all hyperparameters in this synth
-        for hp in hyperparameters:
-            # e.g. {"name": ["adsr_1", "attack", "curve"], "value": 0.5}
-            self.set_hyperparameter(hp["name"], hp["value"])
-
 class Voice(BaseSynth):
     """
     The Voice architecture comprises the following modules: a
@@ -284,12 +180,6 @@ class Voice(BaseSynth):
         for name, module, params in modules_spec:
             key, subkey = jax.random.split(key)
             modules[name] = module(subkey, self.config, **params)
-
-        # TODO: Remove
-        # Initialize all submodules
-        # for module in modules.values():
-        #     key, subkey = jax.random.split(key)
-        #     module.init(subkey)
 
         self.modules = modules
 
