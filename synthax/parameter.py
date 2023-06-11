@@ -24,12 +24,15 @@
 Parameters for DDSP Modules
 """
 
+import jax
 import chex
+from flax import linen as nn
+from flax import struct
 import jax.numpy as jnp
-from typing import Optional, NewType
+from typing import Callable
 
-ParameterName = NewType('ParameterName', str)
 
+@struct.dataclass
 class ModuleParameterRange:
     """
     `ModuleParameterRange` class is a structure for keeping track of
@@ -51,65 +54,57 @@ class ModuleParameterRange:
             closer to :math:`(maximum - minimum)/2`.
     """
 
-    def __init__(
-            self,
-            minimum: float,
-            maximum: float,
-            curve: float = 1.0,
-            symmetric: bool = False,
-    ):
-        self.minimum = minimum
-        self.maximum = maximum
-        self.curve = curve
-        self.symmetric = symmetric
-
-    def __repr__(self):
-        return f"ModuleParameterRange({self.__dict__})"
-
-    def from_0to1(self, normalized: float) -> float:
-        """
-        Set value of this parameter using a normalized value in the range [0,1]
-
-        Args:
-            normalized (float): value within machine-readable range [0, 1] to convert to
-                human-readable range [minimum, maximum].
-        """
-        if not self.symmetric:
-            if self.curve != 1.0:
-                normalized = jnp.exp2(jnp.log2(normalized) / self.curve)
-
-            return self.minimum + (self.maximum - self.minimum) * normalized
-
-        # Compute the curve for a symmetric curve
-        dist = 2.0 * normalized - 1.0
-        if self.curve != 1.0:
-            normalized = jnp.where(
-                dist == 0.0,
-                dist,
-                jnp.exp2(jnp.log2(jnp.abs(dist)) / self.curve) * jnp.sign(dist),
-            )
-
-        return self.minimum + (self.maximum - self.minimum) / 2.0 * (normalized + 1.0)
-
-    def to_0to1(self, value: chex.Array) -> chex.Array:
-        """
-        Convert from human-readable range [minimum, maximum] to machine-range [0, 1].
-
-        Args:
-          value (chex.Array): value within the range defined by minimum and maximum
-        """
-        normalized = (value - self.minimum) / (self.maximum - self.minimum)
-
-        if not self.symmetric:
-            if self.curve != 1:
-                normalized = jnp.power(normalized, self.curve)
-            return normalized
-
-        dist = 2.0 * normalized - 1.0
-        return (1.0 + jnp.power(jnp.abs(dist), self.curve) * jnp.sign(dist)) / 2.0
+    minimum: float
+    maximum: float
+    curve: float = 1.0
+    symmetric: bool = False
 
 
-class ModuleParameter:
+def from_0to1(normalized: jax.typing.ArrayLike, range: ModuleParameterRange) -> jax.typing.ArrayLike:
+    """
+    Set value of this parameter using a normalized value in the range [0,1]
+
+    Args:
+        normalized (float): value within machine-readable range [0, 1] to convert to
+            human-readable range [minimum, maximum].
+    """
+    if not range.symmetric:
+        if range.curve != 1.0:
+            normalized = jnp.exp2(jnp.log2(normalized) / range.curve)
+
+        return range.minimum + (range.maximum - range.minimum) * normalized
+
+    # Compute the curve for a symmetric curve
+    dist = 2.0 * normalized - 1.0
+    if range.curve != 1.0:
+        normalized = jnp.where(
+            dist == 0.0,
+            dist,
+            jnp.exp2(jnp.log2(jnp.abs(dist)) / range.curve) * jnp.sign(dist),
+        )
+
+    return range.minimum + (range.maximum - range.minimum) / 2.0 * (normalized + 1.0)
+
+
+def to_0to1(value: jax.typing.ArrayLike, range: ModuleParameterRange) -> jax.typing.ArrayLike:
+    """
+    Convert from human-readable range [minimum, maximum] to machine-range [0, 1].
+
+    Args:
+        value (chex.Array): value within the range defined by minimum and maximum
+    """
+    normalized = (value - range.minimum) / (range.maximum - range.minimum)
+
+    if not range.symmetric:
+        if range.curve != 1:
+            normalized = jnp.power(normalized, range.curve)
+        return normalized
+
+    dist = 2.0 * normalized - 1.0
+    return (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0
+
+
+class ModuleParameter(nn.Module):
     """
     Args:
         name (str): A name for this parameter
@@ -118,42 +113,21 @@ class ModuleParameter:
         value (chex.Array): initial value of this parameter in the human-readable range.
     """
 
-    def __init__(
-            self,
-            name: str,
-            range: ModuleParameterRange,
-            value: chex.Array,
-    ):
-        self.name = name
-        self.range = range
-        # TODO: Flax self.param
-        self.to_0to1(value)
+    name: str
+    range: ModuleParameterRange
+    value: chex.Array
 
-    def set_value(self, value: chex.Array):
-        """
-        Set the value of this parameter using an input that is
-        in the machine-readable range.
-
-        Args:
-            v (chex.Array): Value to update this parameter
-        """
-        self.value = value
+    def setup(self):
+        self._value = self.param(
+            self.name,
+            lambda _: self.value
+        )
 
     def from_0to1(self) -> chex.Array:
         """
         Get the value of this parameter in the human-readable range.
         """
-        return self.range.from_0to1(self.value)
-
-    def to_0to1(self, value: chex.Array):
-        """
-        Set the value of this parameter using an input that is
-        in the human-readable range.
-
-        Args:
-            v (chex.Array): Value to update this parameter
-        """
-        self.value = self.range.to_0to1(value)
+        return from_0to1(self._value, self.range)
 
     def __repr__(self):
         return f"ModuleParameter({self.__dict__})"

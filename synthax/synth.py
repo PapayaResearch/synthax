@@ -27,27 +27,17 @@
 import os
 import yaml
 import jax
-from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
-from typing import OrderedDict as OrderedDictType
+import chex
 from flax import linen as nn
 from synthax.config import SynthConfig
-from synthax.parameter import ModuleParameter
-from synthax.module import (
-    ADSR,
-    LFO,
-    VCA,
-    AudioMixer,
-    ControlRateUpsample,
-    ControlRateVCA,
-    ModulationMixer,
-    MonophonicKeyboard,
-    Noise,
-    SineVCO,
-    FmVCO,
-    SquareSawVCO,
-    SynthModule,
-)
+
+from synthax.modules.oscillators import SineVCO, FmVCO, SquareSawVCO, Noise
+from synthax.modules.envelopes import ADSR
+from synthax.modules.lfos import LFO
+from synthax.modules.amplifiers import VCA, ControlRateVCA
+from synthax.modules.mixers import AudioMixer, ModulationMixer
+from synthax.modules.control import ControlRateUpsample
+from synthax.modules.keyboard import MonophonicKeyboard
 
 
 class BaseSynth(nn.Module):
@@ -63,6 +53,7 @@ class BaseSynth(nn.Module):
 
     PRNG_key: jax.random.PRNGKey
     config: SynthConfig
+
 
     def setup(self):
         """
@@ -92,6 +83,7 @@ class BaseSynth(nn.Module):
     def buffer_size_seconds(self):
         return self.config.buffer_size_seconds
 
+
 class Voice(BaseSynth):
     """
     The Voice architecture comprises the following modules: a
@@ -116,8 +108,6 @@ class Voice(BaseSynth):
         load_file (str): Filename for the default hyperparameters
     """
 
-    PRNG_key: jax.random.PRNGKey
-    config: SynthConfig
     load_file: str
 
     # TODO: Define dynamically
@@ -169,24 +159,22 @@ class Voice(BaseSynth):
             ("vca", VCA, {}),
             ("mixer", AudioMixer, {
                 "n_input": 4,
-                "curves": [1.0, 1.0, 1.0, 0.025],
                 "names": ["vco_1", "vco_2", "vco_4", "noise"]
-            }
-            )
+            })
         ]
 
         key = self.PRNG_key
         modules = {}
         for name, module, params in modules_spec:
             key, subkey = jax.random.split(key)
-            modules[name] = module(subkey, self.config, **params)
+            modules[name] = module(PRNG_key=subkey, config=self.config, **params)
 
         self.modules = modules
 
         # Load the parameters
         # self.load_hyperparameters(self.load_file)
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args, **kwargs) -> chex.Array:
         # The convention for triggering a note event is that it has
         # the same note_on_duration for both ADSRs.
         midi_f0, note_on_duration = self.modules["keyboard"]()
