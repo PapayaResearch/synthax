@@ -1,4 +1,3 @@
-import jax
 import jax.numpy as jnp
 import chex
 from synthax.types import Signal

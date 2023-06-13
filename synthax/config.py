@@ -50,6 +50,7 @@ class SynthConfig:
             buffer_size_seconds: Optional[float] = 3.0,
             control_rate: Optional[int] = 441,
             eps: float = 1e-6,
+            **kwargs
     ):
         self.batch_size = batch_size
         self.sample_rate = sample_rate
@@ -58,6 +59,10 @@ class SynthConfig:
         self.control_rate = control_rate
         self.control_buffer_size = int(jnp.ceil(buffer_size_seconds * control_rate))
         self.eps = eps
+
+        # Store any additional metadata
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def __repr__(self):
         return f"SynthConfig({self.__dict__})"
