@@ -21,12 +21,11 @@
 # SOFTWARE.
 
 import jax
-from dataclasses import field
 from flax import linen as nn
 from synthax.modules.base import ControlRateModule
 from synthax.parameter import ModuleParameter, ModuleParameterRange
 from synthax.config import SynthConfig
-from synthax.types import ParameterName
+from synthax.types import ParameterSpec
 from typing import Optional
 
 
@@ -36,40 +35,22 @@ class MonophonicKeyboard(ControlRateModule):
     parameters that output a midi_f0 and note duration.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        parameter_ranges (Dict[ParameterName, :class:`~synthax.parameter.ModuleParameterRange`]): TODO.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        midi_f0 (ParameterSpec): TODO
+        duration (ParameterSpec): TODO
     """
 
-    # TODO: Allow parameter_ranges to be partial (e.g. only midi_f0 and default duration)
-    parameter_ranges: Optional[dict[ParameterName, ModuleParameterRange]] = field(
-        default_factory = lambda: {
-            "midi_f0": ModuleParameterRange(
-                minimum=0.0,
-                maximum=127.0,
-                curve=1.0,
-            ),
-            "duration": ModuleParameterRange(
-                minimum=0.01,
-                maximum=4.0,
-                curve=0.5,
-            )
-        })
-
-    def setup(self):
-        # TODO: Refactor if possible
-        self.parameters = {
-            name: ModuleParameter(
-                name=name,
-                range=parameter_range,
-                value=jax.random.uniform(
-                    self.PRNG_key,
-                    shape=(self.config.batch_size,)
-                )
-            )
-            for name, parameter_range in self.parameter_ranges.items()
-        }
+    midi_f0: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=127.0,
+        curve=1.0,
+    )
+    duration: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.01,
+        maximum=4.0,
+        curve=0.5,
+    )
 
     def __call__(self):
-        # TODO: Refactor
         return self.parameters["midi_f0"].from_0to1(), self.parameters["duration"].from_0to1()

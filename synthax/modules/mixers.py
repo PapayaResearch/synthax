@@ -22,12 +22,12 @@
 
 import jax
 import jax.numpy as jnp
+import dataclasses
 from synthax.modules.base import SynthModule
 from synthax.parameter import ModuleParameter, ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.functional import normalize_if_clipping
-from synthax.types import Signal
-
+from synthax.types import Signal, ParameterSpec
 from typing import Optional
 
 
@@ -39,43 +39,42 @@ class ModulationMixer(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_input (int): Number of input signals to module mix.
         n_output (int): Number of output signals to generate.
         input_names (List(str)): TODO
         output_names (List(str)): TODO
-        parameter_ranges (:class:`~synthax.parameter.ModuleParameterRange`): TODO.
+        mod (ParameterSpec): TODO.
     """
 
     n_input: int
     n_output: int
     input_names: Optional[list[str]] = None
     output_names: Optional[list[str]] = None
-    parameter_ranges: Optional[ModuleParameterRange] = ModuleParameterRange(
+    mod: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
         curve=0.5,
     )
 
     def setup(self):
-        # TODO: Refactor if possible
-        parameters = {}
+        param_names = []
         for i in range(self.n_input):
             for j in range(self.n_output):
                 # Apply custom param name if it was passed in
                 if self.input_names is not None:
-                    name = f"{self.input_names[i]}->{self.output_names[j]}"
+                    param_name = f"{self.input_names[i]}->{self.output_names[j]}"
                 else:
-                    name = f"{i}->{j}"
-
-                parameters[name] = ModuleParameter(
-                    name=name,
-                    range=self.parameter_ranges,
-                    value=jax.random.uniform(
-                        self.PRNG_key,
-                        shape=(self.config.batch_size,)
-                    )
-                )
-        self.parameters = parameters
+                    param_name = f"{i}->{j}"
+                param_names.append(param_name)
+                setattr(self, param_name, self.mod)
+        # The default parameter range applies to all modes
+        default_values = {f.name: f.default for f in dataclasses.fields(self)}
+        default_rng = default_values["mod"]
+        self.parameters = {
+            name: self._init_param(name, default_rng)
+            for name in param_names
+        }
 
     def __call__(self, *signals: Signal):
         """
@@ -105,37 +104,33 @@ class AudioMixer(SynthModule):
     resulting signal is outside of [-1, 1].
 
     Args:
+        config (:class:`~synthax.config.SynthConfig`): Configuration.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_input (int): TODO
-        curves (List[float]): TODO
         names (List[str]): TODO
-        parameter_ranges (:class:`~synthax.parameter.ModuleParameterRange`): TODO.
+        level (ParameterSpec): TODO
     """
 
     n_input: int
     names: Optional[list[str]] = None
-    parameter_ranges: Optional[ModuleParameterRange] = ModuleParameterRange(
+    level: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
         curve=1.0,
     )
 
     def setup(self):
-        names = [f"level{i}" if self.names is None else self.names[i]
-                      for i in range(self.n_input)]
-
-        parameter_ranges = [self.parameter_ranges] * self.n_input
-
-        # TODO: Refactor if possible
+        param_names = []
+        for i in range(self.n_input):
+            param_name = f"level{i}" if self.names is None else self.names[i]
+            param_names.append(param_name)
+            setattr(self, param_name, self.level)
+        # The default parameter range applies to all modes
+        default_values = {f.name: f.default for f in dataclasses.fields(self)}
+        default_rng = default_values["level"]
         self.parameters = {
-            name: ModuleParameter(
-                name=name,
-                range=parameter_range,
-                value=jax.random.uniform(
-                    self.PRNG_key,
-                    shape=(self.config.batch_size,)
-                )
-            )
-            for name, parameter_range in zip(names, parameter_ranges)
+            name: self._init_param(name, default_rng)
+            for name in param_names
         }
 
     def __call__(self, *signals: Signal):

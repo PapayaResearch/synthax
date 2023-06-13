@@ -20,9 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import jax
 import chex
-from typing import NewType
+from typing import NewType, Union
+from synthax.parameter import ModuleParameterSpec, ModuleParameterRange
 
 
 Signal = NewType("Signal", chex.Array)
-ParameterName = NewType("ParameterName", str)
+ParameterSpec = Union[
+    jax.typing.ArrayLike,
+    ModuleParameterSpec,
+    ModuleParameterRange
+]

@@ -105,12 +105,8 @@ class Voice(BaseSynth):
     Args:
         PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (:class:`~synthax.config.SynthConfig`): Global configuration.
-        load_file (str): Filename for the default hyperparameters
     """
 
-    load_file: str
-
-    # TODO: Define dynamically
     def setup(self):
         # Define modules
         modules_spec = [
@@ -171,9 +167,6 @@ class Voice(BaseSynth):
 
         self.modules = modules
 
-        # Load the parameters
-        # self.load_hyperparameters(self.load_file)
-
     def __call__(self, *args, **kwargs) -> chex.Array:
         # The convention for triggering a note event is that it has
         # the same note_on_duration for both ADSRs.
@@ -227,3 +220,187 @@ class Voice(BaseSynth):
         )
 
         return self.modules["mixer"](vco_1_out, vco_2_out, vco_4_out, noise_out)
+
+class ParametricSynth(BaseSynth):
+    """
+    Define a synthesizer given the number of VCOs by type.
+
+    Args:
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (:class:`~synthax.config.SynthConfig`): Global configuration.
+        sine (int): Number of :class:`~synthax.modules.oscillators.SineVCO`
+        square_saw (int): Number of :class:`~synthax.modules.oscillators.SquareSawVCO`
+        fm_sine (int): Number of :class:`~synthax.modules.oscillators.FmVCO` and
+            :class:`~synthax.modules.oscillators.SineVCO`
+        fm_square_saw (int): Number of :class:`~synthax.modules.oscillators.FmVCO` and
+            :class:`~synthax.modules.oscillators.SquareSawVCO`
+    """
+
+    sine: int = 1
+    square_saw: int = 1
+    fm_sine: int = 1
+    fm_square_saw: int = 0
+
+    def setup(self):
+        # Store total number of VCOs
+        self.n = self.sine + self.square_saw + self.fm_sine + self.fm_square_saw
+
+        # Define modules
+        modules_spec = [
+            ("control_vca", ControlRateVCA, {}),
+            ("control_upsample", ControlRateUpsample, {}),
+            ("noise", Noise, {}),
+            ("vca", VCA, {}),
+        ]
+
+        mod_input = []
+        mod_output = []
+        for i in range(1, self.n + 1):
+            # Modules (keyboards, ADSRs and LFOs)
+            modules_spec.append((f"keyboard_{i}", MonophonicKeyboard, {}))
+            modules_spec.append((f"adsr_{i}", ADSR, {}))
+            modules_spec.append((f"lfo_{i}", LFO, {}))
+            modules_spec.append((f"lfo_{i}_amp_adsr", ADSR, {}))
+            modules_spec.append((f"lfo_{i}_rate_adsr", ADSR, {}))
+            # Params for ModulationMixer
+            mod_input.append(f"adsr_{i}")
+            mod_input.append(f"lfo_{i}")
+            mod_output.append(f"vco_{i}_pitch")
+            mod_output.append(f"vco_{i}_amp")
+
+        mixable_vcos = []
+        i = 1
+        # SineVCO
+        for _ in range(self.sine):
+            modules_spec.append((f"vco_{i}", SineVCO, {}))
+            mixable_vcos.append(f"vco_{i}")
+            i += 1
+
+        # SquareSawVCO
+        for _ in range(self.square_saw):
+            modules_spec.append((f"vco_{i}", SquareSawVCO, {}))
+            mixable_vcos.append(f"vco_{i}")
+            i += 1
+
+        # FM SineVCO
+        fm_vcos_idxs = []
+        for _ in range(self.fm_sine):
+            modules_spec.append((f"vco_{i}", SineVCO, {}))
+            fm_vcos_idxs.append(i)
+            i += 1
+
+        # FM SquareSawVCO
+        for _ in range(self.fm_square_saw):
+            modules_spec.append((f"vco_{i}", SquareSawVCO, {}))
+            fm_vcos_idxs.append(i)
+            i += 1
+
+        fm_idxs = []
+        for _ in range(self.fm_sine + self.fm_square_saw):
+            modules_spec.append((f"vco_{i}", FmVCO, {}))
+            mixable_vcos.append(f"vco_{i}")
+            fm_idxs.append(i)
+            i += 1
+
+        self.fm_pair_idxs = list(zip(fm_vcos_idxs, fm_idxs))
+
+        # Modulation mixer
+        modules_spec.append(
+            (
+                "mod_matrix",
+                ModulationMixer,
+                {
+                    "n_input": len(mod_input),
+                    "n_output": len(mod_output) + 1,
+                    "input_names": mod_input,
+                    "output_names": mod_output + ["noise_amp"],
+                },
+             )
+        )
+
+        # Audio mixer
+        modules_spec.append(
+            (
+                "mixer",
+                AudioMixer,
+                {
+                    "n_input": len(mixable_vcos) + 1, # VCOs + noise
+                    "names": mixable_vcos + ["noise"],
+                },
+            )
+        )
+
+        key = self.PRNG_key
+        modules = {}
+        for name, module, params in modules_spec:
+            key, subkey = jax.random.split(key)
+            modules[name] = module(PRNG_key=subkey, config=self.config, **params)
+
+        self.modules = modules
+
+    def __call__(self, *args, **kwargs) -> chex.Array:
+        # Keyboard for each VCO
+        keyboards = [] # [(midi_f0, note_on_duration)]
+        for i in range(1, self.n + 1):
+            keyboards.append(self.modules[f"keyboard_{i}"]())
+
+        # ADSRs for modulating LFOs
+        lfos_rate = []
+        lfos_amp = []
+        for i in range(1, self.n + 1):
+            lfos_rate.append(self.modules[f"lfo_{i}_rate_adsr"](keyboards[i-1][1]))
+            lfos_amp.append(self.modules[f"lfo_{i}_amp_adsr"](keyboards[i-1][1]))
+
+        # Compute LFOs with envelopes
+        lfos = []
+        for i in range(1, self.n + 1):
+            lfos.append(
+                self.modules["control_vca"](
+                    self.modules[f"lfo_{i}"](lfos_rate[i-1]),
+                    lfos_amp[i-1]
+                )
+            )
+
+        # ADSRs for oscillators and noise
+        adsrs = []
+        for i in range(1, self.n + 1):
+            adsrs.append(self.modules[f"adsr_{i}"](keyboards[i-1][1]))
+
+        # Mix all modulation signals
+        mods = self.modules["mod_matrix"](*adsrs, *lfos)
+
+        # Create signal and with modulations and mix together
+        vcos = []
+        for i, (vco_pitch, vco_amp) in enumerate(zip(mods[::2], mods[1::2])):
+            # Iterate pairwise (e.g. [1,2,3,4] -> [(1,2), (3,4)])
+            vcos.append(
+                self.modules["vca"](
+                    self.modules[f"vco_{i+1}"](
+                        keyboards[i][0],
+                        self.modules["control_upsample"](vco_pitch)
+                    ),
+                    self.modules["control_upsample"](vco_amp)
+                )
+            )
+
+        # Input VCOs into FM VCOs
+        for fm_vco_idx, fm_idx in self.fm_pair_idxs:
+            vcos.append(
+                self.modules[f"vco_{fm_idx}"](
+                    keyboards[fm_vco_idx - 1][0],
+                    vcos[fm_vco_idx - 1]
+                )
+            )
+
+        # Add noise
+        noise_out = self.modules["vca"](
+            self.modules["noise"](),
+            self.modules["control_upsample"](mods[-1])
+        )
+
+        # Get only the mixable VCOs (i.e. no VCOs going into FM)
+        mixable_vcos = [vcos[i - 1]
+                        for i in range(1, len(vcos) + 1)
+                        if i not in [t[0] for t in self.fm_pair_idxs]]
+
+        return self.modules["mixer"](*mixable_vcos, noise_out)

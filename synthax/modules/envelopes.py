@@ -22,11 +22,10 @@
 
 import jax
 import jax.numpy as jnp
-from dataclasses import field
 from synthax.modules.base import ControlRateModule
 from synthax.parameter import ModuleParameter, ModuleParameterRange
 from synthax.config import SynthConfig
-from synthax.types import ParameterName, Signal
+from synthax.types import ParameterSpec, Signal
 from typing import Optional
 
 
@@ -35,52 +34,38 @@ class ADSR(ControlRateModule):
     Envelope class for building a control-rate ADSR signal.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        parameter_ranges (Dict[ParameterName, :class:`~synthax.parameter.ModuleParameterRange`]): TODO.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        attack (ParameterSpec): TODO
+        decay (ParameterSpec): TODO
+        sustain (ParameterSpec): TODO
+        release (ParameterSpec): TODO
+        alpha (ParameterSpec): TODO
     """
 
-    # TODO: Allow parameter_ranges to be partial
-    parameter_ranges: Optional[dict[ParameterName, ModuleParameterRange]] = field(
-        default_factory = lambda: {
-            "attack": ModuleParameterRange(
-                minimum=0.0,
-                maximum=2.0,
-                curve=0.5,
-            ),
-            "decay": ModuleParameterRange(
-                minimum=0.0,
-                maximum=2.0,
-                curve=0.5,
-            ),
-            "sustain": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            ),
-            "release": ModuleParameterRange(
-                minimum=0.0,
-                maximum=5.0,
-                curve=0.5,
-            ),
-            "alpha": ModuleParameterRange(
-                minimum=0.1,
-                maximum=6.0,
-            )
-        })
-
-    def setup(self):
-        # TODO: Refactor if possible
-        self.parameters = {
-            name: ModuleParameter(
-                name=name,
-                range=parameter_range,
-                value=jax.random.uniform(
-                    self.PRNG_key,
-                    shape=(self.config.batch_size,)
-                )
-            )
-            for name, parameter_range in self.parameter_ranges.items()
-        }
+    attack: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=2.0,
+        curve=0.5,
+    )
+    decay: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=2.0,
+        curve=0.5,
+    )
+    sustain: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
+    release: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=5.0,
+        curve=0.5,
+    )
+    alpha: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.1,
+        maximum=6.0,
+    )
 
     def __call__(self, note_on_duration) -> Signal:
         """

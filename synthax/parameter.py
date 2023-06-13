@@ -29,8 +29,7 @@ import chex
 from flax import linen as nn
 from flax import struct
 import jax.numpy as jnp
-from typing import Callable
-
+from typing import Callable, NamedTuple
 
 @struct.dataclass
 class ModuleParameterRange:
@@ -103,6 +102,10 @@ def to_0to1(value: jax.typing.ArrayLike, range: ModuleParameterRange) -> jax.typ
     dist = 2.0 * normalized - 1.0
     return (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0
 
+
+class ModuleParameterSpec(NamedTuple):
+    range: ModuleParameterRange
+    value: jax.typing.ArrayLike
 
 class ModuleParameter(nn.Module):
     """

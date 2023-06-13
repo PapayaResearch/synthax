@@ -22,11 +22,12 @@
 
 import jax
 import chex
+import dataclasses
 from flax import linen as nn
 from synthax.config import SynthConfig
-from synthax.parameter import ModuleParameter
+from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec
 from synthax.functional import fix_length
-from synthax.types import Signal
+from synthax.types import Signal, ParameterSpec
 
 
 class SynthModule(nn.Module):
@@ -44,10 +45,35 @@ class SynthModule(nn.Module):
     Args:
         config (SynthConfig): An object containing synthesis settings
             that are shared across all modules.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     config: SynthConfig
     PRNG_key: jax.random.PRNGKey
+
+    def setup(self):
+        param_names = [k for k in self.__dict__ if isinstance(getattr(self, k), ParameterSpec)]
+        default_values = {f.name: f.default for f in dataclasses.fields(self)}
+        self.parameters = {
+            name: self._init_param(name, default_values[name])
+            for name in param_names
+        }
+
+    def _init_param(self, param_name, default_rng):
+        param = getattr(self, param_name)
+        if isinstance(param, jax.typing.ArrayLike):
+            val = param # TODO: 0to1
+            rng = default_rng
+        if isinstance(param, ModuleParameterRange):
+            val = jax.random.uniform(
+                self.PRNG_key,
+                shape=(self.config.batch_size,)
+            )
+            rng = param
+        if isinstance(param, ModuleParameterSpec):
+            val = param.value # TODO: 0to1
+            rng = param.range
+        return ModuleParameter(name=param_name, range=rng, value=val)
 
     @property
     def batch_size(self):
@@ -82,7 +108,7 @@ class SynthModule(nn.Module):
         truncated to length; shorter signals are zero-padded.
 
         Args:
-            signal (TODO): A signal to pad or truncate.
+            signal (Signal): A signal to pad or truncate.
         """
         return fix_length(signal, self.buffer_size)
 
@@ -97,16 +123,6 @@ class SynthModule(nn.Module):
         """
         return seconds * self.sample_rate
 
-    def set_parameter(self, parameter: ModuleParameter, value: chex.Array):
-        """
-        Updates a parameter value in a parameter-specific non-normalized range.
-
-        Args:
-            parameter_id: Id of the parameter to update.
-            value:  Value to assign to the parameter.
-        """
-        parameter.to_0to1(value)
-
 
 class ControlRateModule(SynthModule):
     """
@@ -116,6 +132,7 @@ class ControlRateModule(SynthModule):
     Args:
         config (SynthConfig): An object containing synthesis settings
             that are shared across all modules.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     @property

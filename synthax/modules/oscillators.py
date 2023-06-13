@@ -23,12 +23,11 @@
 import jax
 import jax.numpy as jnp
 import chex
-from dataclasses import field
 from synthax.modules.base import SynthModule
 from synthax.parameter import ModuleParameter, ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.functional import midi_to_hz
-from synthax.types import ParameterName, Signal
+from synthax.types import Signal, ParameterSpec
 from typing import Optional
 
 
@@ -43,41 +42,26 @@ class VCO(SynthModule):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        parameter_ranges (Dict[ParameterName, :class:`~synthax.parameter.ModuleParameterRange`]): TODO.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        tuning (ParameterSpec): TODO
+        mod_depth (ParameterSpec): TODO
+        initial_phase (ParameterSpec): TODO
     """
 
-    # TODO: Allow parameter_ranges to be partial
-    parameter_ranges: Optional[dict[ParameterName, ModuleParameterRange]] = field(
-        default_factory = lambda: {
-            "tuning": ModuleParameterRange(
-                minimum=-24.0,
-                maximum=24.0,
-            ),
-            "mod_depth": ModuleParameterRange(
-                minimum=-96.0,
-                maximum=96.0,
-                curve=0.2,
-                symmetric=True,
-            ),
-            "initial_phase": ModuleParameterRange(
-                minimum=-jnp.pi,
-                maximum=jnp.pi,
-            )
-        })
-
-    def setup(self):
-        # TODO: Refactor if possible
-        self.parameters = {
-            name: ModuleParameter(
-                name=name,
-                range=parameter_range,
-                value=jax.random.uniform(
-                    self.PRNG_key,
-                    shape=(self.config.batch_size,)
-                )
-            )
-            for name, parameter_range in self.parameter_ranges.items()
-        }
+    tuning: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-24.0,
+        maximum=24.0,
+    )
+    mod_depth: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-96.0,
+        maximum=96.0,
+        curve=0.2,
+        symmetric=True,
+    )
+    initial_phase: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-jnp.pi,
+        maximum=jnp.pi,
+    )
 
     def __call__(
         self,
@@ -161,6 +145,7 @@ class SineVCO(VCO):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     def oscillator(self, argument: Signal, midi_f0: chex.Array) -> Signal:
@@ -191,9 +176,10 @@ class FmVCO(VCO):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
-    # TODO: We include this override to output to make mod_signal non-optional
+    # We include this override to output to make mod_signal non-optional
     def __call__(self, midi_f0: chex.Array, mod_signal: Signal) -> Signal:
         """
         Args:
@@ -252,31 +238,31 @@ class SquareSawVCO(VCO):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        parameter_ranges (Dict[ParameterName, :class:`~synthax.parameter.ModuleParameterRange`]): TODO.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        tuning (ParameterSpec): TODO
+        mod_depth (ParameterSpec): TODO
+        initial_phase (ParameterSpec): TODO
+        shape (ParameterSpec): TODO
     """
 
-    # TODO: Allow parameter_ranges to be partial
-    parameter_ranges: Optional[dict[ParameterName, ModuleParameterRange]] = field(
-        default_factory = lambda: {
-            "tuning": ModuleParameterRange(
-                minimum=-24.0,
-                maximum=24.0,
-            ),
-            "mod_depth": ModuleParameterRange(
-                minimum=-96.0,
-                maximum=96.0,
-                curve=0.2,
-                symmetric=True,
-            ),
-            "initial_phase": ModuleParameterRange(
-                minimum=-jnp.pi,
-                maximum=jnp.pi,
-            ),
-            "shape": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            )
-        })
+    tuning: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-24.0,
+        maximum=24.0,
+    )
+    mod_depth: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-96.0,
+        maximum=96.0,
+        curve=0.2,
+        symmetric=True,
+    )
+    initial_phase: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-jnp.pi,
+        maximum=jnp.pi,
+    )
+    shape: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
 
     def oscillator(self, argument: Signal, midi_f0: chex.Array) -> Signal:
         """
@@ -332,8 +318,8 @@ class Noise(SynthModule):
     each `Noise` with a unique seed.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     def setup(self):

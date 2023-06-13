@@ -23,11 +23,10 @@
 import jax
 import jax.numpy as jnp
 import chex
-from dataclasses import field
 from synthax.modules.base import ControlRateModule
 from synthax.parameter import ModuleParameter, ModuleParameterRange
 from synthax.config import SynthConfig
-from synthax.types import ParameterName, Signal
+from synthax.types import ParameterSpec, Signal
 from typing import Optional
 
 
@@ -41,75 +40,68 @@ class LFO(ControlRateModule):
 
     Args:
         config (SynthConfig): See :class:`~synthax.module.SynthConfig`.
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         exponent: A non-negative value that determines the discrimination of the
             soft-max selector for LFO shapes. Higher values will tend to favour
             one LFO shape over all others. Lower values will result in a more
             even blend of LFO shapes.
-        parameter_ranges (Dict[ParameterName, :class:`~synthax.parameter.ModuleParameterRange`]): TODO.
+        frequency (ParameterSpec): TODO
+        mod_depth (ParameterSpec): TODO
+        initial_phase (ParameterSpec): TODO
+        sin (ParameterSpec): TODO
+        tri (ParameterSpec): TODO
+        saw (ParameterSpec): TODO
+        rsaw (ParameterSpec): TODO
+        sqr (ParameterSpec): TODO
     """
 
     exponent: chex.Array = jnp.exp(1) # e
-    # TODO: Allow parameter_ranges to be partial
-    parameter_ranges: Optional[dict[ParameterName, ModuleParameterRange]] = field(
-        default_factory = lambda: {
-            "frequency": ModuleParameterRange(
-                minimum=0.0,
-                maximum=20.0,
-                curve=0.25,
-            ),
-            "mod_depth": ModuleParameterRange(
-                minimum=-10.0,
-                maximum=20.0,
-                curve=0.5,
-                symmetric=True,
-            ),
-            "initial_phase": ModuleParameterRange(
-                minimum=-jnp.pi,
-                maximum=jnp.pi,
-            ),
-            "sin": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            ),
-            "tri": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            ),
-            "saw": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            ),
-            "rsaw": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            ),
-            "sqr": ModuleParameterRange(
-                minimum=0.0,
-                maximum=1.0,
-            )
-        })
+    frequency: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=20.0,
+        curve=0.25,
+    )
+    mod_depth: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-10.0,
+        maximum=20.0,
+        curve=0.5,
+        symmetric=True,
+    )
+    initial_phase: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=-jnp.pi,
+        maximum=jnp.pi,
+    )
+    sin: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
+    tri: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
+    saw: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
+    rsaw: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
+    sqr: Optional[ParameterSpec] = ModuleParameterRange(
+        minimum=0.0,
+        maximum=1.0,
+    )
 
     def setup(self):
-        # TODO: Refactor
+        super().setup()
         self.lfo_types = ["sin", "tri", "saw", "rsaw", "sqr"]
-        self.parameters = {
-            name: ModuleParameter(
-                name=name,
-                range=parameter_range,
-                value=jax.random.uniform(
-                    self.PRNG_key,
-                    shape=(self.config.batch_size,)
-                )
-            )
-            for name, parameter_range in self.parameter_ranges.items()
-        }
 
     def __call__(self, mod_signal: Optional[Signal] = None):
         """
         Generates low frequency oscillator control signal.
 
         Args:
-            mod_signal (TODO):  LFO rate modulation signal in Hz. To modulate the
+            mod_signal (Signal):  LFO rate modulation signal in Hz. To modulate the
                 depth of the LFO, use :class:`synthax.module.ControlRateVCA`.
         """
         # Create frequency signal
@@ -139,7 +131,7 @@ class LFO(ControlRateModule):
         Applies the LFO-rate modulation signal to the LFO base frequency.
 
         Args:
-            mod_signal (TODO): Modulation signal in Hz. Positive values increase the
+            mod_signal (Signal): Modulation signal in Hz. Positive values increase the
                 LFO base rate; negative values decrease it.
         """
         frequency = jnp.expand_dims(
@@ -167,7 +159,7 @@ class LFO(ControlRateModule):
         tuple, to be mixed by :func:`synthax.module.LFO.__call__`.
 
         Args:
-            argument (TODO): Time-varying phase to generate LFO signals.
+            argument (Signal): Time-varying phase to generate LFO signals.
         """
         cos = jnp.cos(argument + jnp.pi)
         square = jnp.sign(cos)
