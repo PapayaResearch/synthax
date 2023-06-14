@@ -142,7 +142,7 @@ class LFO(ControlRateModule):
         # If no modulation, then return a view of the frequency of this
         # LFO expanded to the control buffer size
         if mod_signal is None:
-            return jnp.broadcast_to(frequency, (-1, self.control_buffer_size))
+            return jnp.broadcast_to(frequency, (frequency.shape[0], self.control_buffer_size))
 
         modulation = jnp.expand_dims(
             self.parameters["mod_depth"].from_0to1(), axis=1

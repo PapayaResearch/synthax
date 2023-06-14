@@ -107,7 +107,7 @@ class VCO(SynthModule):
         # number of values
         if mod_signal is None:
             control_hz = midi_to_hz(midi_f0)
-            return jnp.broadcast_to(control_hz, (-1, self.buffer_size))
+            return jnp.broadcast_to(control_hz, (control_hz.shape[0], self.buffer_size))
 
         # If there is modulation, then add that to the fundamental,
         # clamp to a range [0.0, 127.0], then return in frequency Hz.
