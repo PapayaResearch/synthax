@@ -83,7 +83,7 @@ class VCO(SynthModule):
             axis=1
         )
         signal = self.oscillator(cosine_argument, midi_f0)
-        return self.to_buffer_size(signal)
+        return signal
 
     def make_control_as_frequency(
         self,
@@ -334,4 +334,4 @@ class Noise(SynthModule):
 
     def __call__(self) -> Signal:
         signal = self.parameters["noise"]
-        return self.to_buffer_size(signal)
+        return signal

@@ -55,9 +55,9 @@ class SynthConfig:
         self.batch_size = batch_size
         self.sample_rate = sample_rate
         self.buffer_size_seconds = buffer_size_seconds
-        self.buffer_size = int(jnp.ceil(buffer_size_seconds * sample_rate))
+        self.buffer_size = jnp.ceil(buffer_size_seconds * sample_rate).astype(int)
         self.control_rate = control_rate
-        self.control_buffer_size = int(jnp.ceil(buffer_size_seconds * control_rate))
+        self.control_buffer_size = jnp.ceil(buffer_size_seconds * control_rate).astype(int)
         self.eps = eps
 
         # Store any additional metadata

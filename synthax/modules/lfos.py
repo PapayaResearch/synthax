@@ -124,7 +124,7 @@ class LFO(ControlRateModule):
         mode /= jnp.sum(mode, axis=1, keepdims=True)
 
         signal = jnp.matmul(jnp.expand_dims(mode, axis=1), shapes).squeeze(1)
-        return self.to_buffer_size(signal)
+        return signal
 
     def make_control(self, mod_signal: Optional[Signal] = None) -> Signal:
         """

@@ -44,4 +44,4 @@ class ControlRateUpsample(SynthModule):
             (1, self.config.buffer_size),
             method="linear"
         )
-        return self.to_buffer_size(upsampled_signal)
+        return upsampled_signal

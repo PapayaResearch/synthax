@@ -107,7 +107,7 @@ class ADSR(ControlRateModule):
 
         signal = attack_signal * decay_signal * release_signal
 
-        return self.to_buffer_size(signal)
+        return signal
 
     def ramp(
             self,

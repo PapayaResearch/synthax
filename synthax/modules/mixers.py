@@ -145,4 +145,4 @@ class AudioMixer(SynthModule):
                 signals
             ).squeeze(1)
         )
-        return self.to_buffer_size(mixed_signal)
+        return mixed_signal

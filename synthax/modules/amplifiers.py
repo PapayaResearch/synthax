@@ -42,7 +42,7 @@ class VCA(SynthModule):
 
     def __call__(self, audio_in: Signal, control_in: Signal):
         signal = audio_in * control_in
-        return self.to_buffer_size(signal)
+        return signal
 
 
 class ControlRateVCA(ControlRateModule):
@@ -60,4 +60,4 @@ class ControlRateVCA(ControlRateModule):
 
     def __call__(self, audio_in: Signal, control_in: Signal):
         signal = audio_in * control_in
-        return self.to_buffer_size(signal)
+        return signal
