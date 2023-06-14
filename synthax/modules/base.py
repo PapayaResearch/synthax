@@ -25,9 +25,9 @@ import chex
 import dataclasses
 from flax import linen as nn
 from synthax.config import SynthConfig
-from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec
+from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec, to_0to1
 from synthax.functional import fix_length
-from synthax.types import Signal, ParameterSpec
+from synthax.types import Signal, is_parameter_spec
 
 
 class SynthModule(nn.Module):
@@ -52,27 +52,28 @@ class SynthModule(nn.Module):
     PRNG_key: jax.random.PRNGKey
 
     def setup(self):
-        param_names = [k for k in self.__dict__ if isinstance(getattr(self, k), ParameterSpec)]
-        default_values = {f.name: f.default for f in dataclasses.fields(self)}
+        # Filter all ParameterSpec default values
+        default_values = {f.name: f.default
+                          for f in dataclasses.fields(self) if is_parameter_spec(f.type)}
         self.parameters = {
-            name: self._init_param(name, default_values[name])
-            for name in param_names
+            name: self._init_param(name, default_value)
+            for name, default_value in default_values.items()
         }
 
     def _init_param(self, param_name, default_rng):
         param = getattr(self, param_name)
         if isinstance(param, jax.typing.ArrayLike):
-            val = param # TODO: 0to1
             rng = default_rng
+            val = to_0to1(param, rng)
         if isinstance(param, ModuleParameterRange):
+            rng = param
             val = jax.random.uniform(
                 self.PRNG_key,
                 shape=(self.config.batch_size,)
             )
-            rng = param
         if isinstance(param, ModuleParameterSpec):
-            val = param.value # TODO: 0to1
             rng = param.range
+            val = to_0to1(param.value, rng)
         return ModuleParameter(name=param_name, range=rng, value=val)
 
     @property
