@@ -22,7 +22,7 @@
 
 import jax
 import chex
-from typing import NewType, Union
+from typing import NewType, Union, Optional
 from synthax.parameter import ModuleParameterSpec, ModuleParameterRange
 
 
@@ -32,3 +32,11 @@ ParameterSpec = Union[
     ModuleParameterSpec,
     ModuleParameterRange
 ]
+
+def is_parameter_spec(t):
+    if getattr(t, '__origin__', None) is Union:
+        union_args = t.__args__
+        parameter_spec_args = Optional[ParameterSpec].__args__
+        return set(union_args) == set(parameter_spec_args)
+    else:
+        False
