@@ -84,7 +84,7 @@ class BaseSynth(nn.Module):
         return self.config.buffer_size_seconds
 
 
-class Voice(BaseSynth):
+class VoiceExpanded(BaseSynth):
     """
     The Voice architecture comprises the following modules: a
     :class:`~synthax.module.MonophonicKeyboard`, two
@@ -220,6 +220,121 @@ class Voice(BaseSynth):
         )
 
         return self.modules["mixer"](vco_1_out, vco_2_out, vco_4_out, noise_out)
+
+class Voice(BaseSynth):
+    """
+    The Voice architecture comprises the following modules: a
+    :class:`~synthax.module.MonophonicKeyboard`, two
+    :class:`~synthax.module.LFO`, six :class:`~synthax.module.ADSR`
+    envelopes (each :class:`~synthax.module.LFO` module includes
+    two dedicated :class:`~synthax.module.ADSR`: one for rate
+    modulation and another for amplitude modulation), one
+    :class:`~synthax.module.SineVCO`, one
+    :class:`~synthax.module.SquareSawVCO`, one
+    :class:`~synthax.module.Noise` generator,
+    :class:`~synthax.module.VCA`, a
+    :class:`~synthax.module.ModulationMixer` and an
+    :class:`~synthax.module.AudioMixer`. Modulation signals
+    generated from control modules (:class:`~synthax.module.ADSR`
+    and :class:`~synthax.module.LFO`) are upsampled to the audio
+    sample rate before being passed to audio rate modules.
+
+    Args:
+        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (:class:`~synthax.config.SynthConfig`): Global configuration.
+    """
+
+    def setup(self):
+        # Define modules
+        modules_spec = [
+            ("keyboard", MonophonicKeyboard, {}),
+            ("adsr_1", ADSR, {}),
+            ("adsr_2", ADSR, {}),
+            ("lfo_1", LFO, {}),
+            ("lfo_2", LFO, {}),
+            ("lfo_1_amp_adsr", ADSR, {}),
+            ("lfo_2_amp_adsr", ADSR, {}),
+            ("lfo_1_rate_adsr", ADSR, {}),
+            ("lfo_2_rate_adsr", ADSR, {}),
+            ("control_vca", ControlRateVCA, {}),
+            ("control_upsample", ControlRateUpsample, {}),
+            ("mod_matrix", ModulationMixer, {
+                "n_input": 4,
+                "n_output": 5,
+                "input_names": [
+                    "adsr_1",
+                    "adsr_2",
+                    "lfo_1",
+                    "lfo_2",
+                ],
+                "output_names": [
+                    "vco_1_pitch",
+                    "vco_1_amp",
+                    "vco_2_pitch",
+                    "vco_2_amp",
+                    "noise_amp",
+                ]
+            }
+            ),
+            ("vco_1", SineVCO, {}),
+            ("vco_2", SquareSawVCO, {}),
+            ("noise", Noise, {}),
+            ("vca", VCA, {}),
+            ("mixer", AudioMixer, {
+                "n_input": 3,
+                "names": ["vco_1", "vco_2", "noise"]
+            })
+        ]
+
+        key = self.PRNG_key
+        modules = {}
+        for name, module, params in modules_spec:
+            key, subkey = jax.random.split(key)
+            modules[name] = module(PRNG_key=subkey, config=self.config, **params)
+
+        self.modules = modules
+
+    def __call__(self, *args, **kwargs) -> chex.Array:
+        # The convention for triggering a note event is that it has
+        # the same note_on_duration for both ADSRs.
+        midi_f0, note_on_duration = self.modules["keyboard"]()
+
+        # ADSRs for modulating LFOs
+        lfo_1_rate = self.modules["lfo_1_rate_adsr"](note_on_duration)
+        lfo_2_rate = self.modules["lfo_2_rate_adsr"](note_on_duration)
+        lfo_1_amp = self.modules["lfo_1_amp_adsr"](note_on_duration)
+        lfo_2_amp = self.modules["lfo_2_amp_adsr"](note_on_duration)
+
+        # Compute LFOs with envelopes
+        lfo_1 = self.modules["control_vca"](self.modules["lfo_1"](lfo_1_rate), lfo_1_amp)
+        lfo_2 = self.modules["control_vca"](self.modules["lfo_2"](lfo_2_rate), lfo_2_amp)
+
+        # ADSRs for Oscillators and noise
+        adsr_1 = self.modules["adsr_1"](note_on_duration)
+        adsr_2 = self.modules["adsr_2"](note_on_duration)
+
+        # Mix all modulation signals
+        (vco_1_pitch,
+         vco_1_amp,
+         vco_2_pitch,
+         vco_2_amp,
+         noise_amp) = self.modules["mod_matrix"](adsr_1, adsr_2, lfo_1, lfo_2,)
+
+        # Create signal and with modulations and mix together
+        vco_1_out = self.modules["vca"](
+            self.modules["vco_1"](midi_f0, self.modules["control_upsample"](vco_1_pitch)),
+            self.modules["control_upsample"](vco_1_amp),
+        )
+        vco_2_out = self.modules["vca"](
+            self.modules["vco_2"](midi_f0, self.modules["control_upsample"](vco_2_pitch)),
+            self.modules["control_upsample"](vco_2_amp),
+        )
+        noise_out = self.modules["vca"](
+            self.modules["noise"](),
+            self.modules["control_upsample"](noise_amp)
+        )
+
+        return self.modules["mixer"](vco_1_out, vco_2_out, noise_out)
 
 class ParametricSynth(BaseSynth):
     """
