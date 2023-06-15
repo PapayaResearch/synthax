@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import jax
+import jax.numpy as jnp
 import chex
 import dataclasses
 from flax import linen as nn
@@ -62,7 +63,7 @@ class SynthModule(nn.Module):
 
     def _init_param(self, param_name, default_rng):
         param = getattr(self, param_name)
-        if isinstance(param, jax.typing.ArrayLike):
+        if isinstance(param, jnp.ndarray):
             rng = default_rng
             val = to_0to1(param, rng)
         if isinstance(param, ModuleParameterRange):

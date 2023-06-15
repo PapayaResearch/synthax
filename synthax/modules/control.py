@@ -21,9 +21,11 @@
 # SOFTWARE.
 
 import jax
+import jax.numpy as jnp
 from flax import linen as nn
 from synthax.modules.base import SynthModule
 from synthax.config import SynthConfig
+from synthax.types import Signal
 
 
 class ControlRateUpsample(SynthModule):
@@ -39,9 +41,11 @@ class ControlRateUpsample(SynthModule):
     """
 
     def __call__(self, signal):
-        upsampled_signal = jax.image.resize(
-            signal,
-            (1, self.config.buffer_size),
-            method="linear"
-        )
+        def vmap_interp(s: Signal):
+            return jnp.interp(
+                jnp.linspace(0, self.config.control_buffer_size, self.config.buffer_size),
+                jnp.linspace(0, self.config.control_buffer_size, self.config.control_buffer_size),
+                s
+            )
+        upsampled_signal = jax.vmap(vmap_interp)(signal)
         return upsampled_signal
