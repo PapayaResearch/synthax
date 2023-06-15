@@ -7,8 +7,8 @@ from memory_profiler import memory_usage
 BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 SAMPLE_RATE = 44100
 SOUND_DURATION = 4.0
-N_BATCHES = 1000
-N_ROUNDS = 100
+N_BATCHES = 100
+N_ROUNDS = 10
 
 
 timer = time.perf_counter
