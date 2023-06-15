@@ -323,13 +323,18 @@ class Noise(SynthModule):
     """
 
     def setup(self):
-        self.parameters = {
-            "noise": jax.random.uniform(
-                self.PRNG_key,
-                shape=(self.config.batch_size, self.buffer_size),
-                minval=-1.0,
-                maxval=1.0
+        def make_noise():
+            return jnp.broadcast_to(
+                jax.random.uniform(
+                    self.PRNG_key,
+                    shape=(1, self.buffer_size),
+                    minval=-1.0,
+                    maxval=1.0
+                ),
+                (self.batch_size, self.buffer_size)
             )
+        self.parameters = {
+            "noise": make_noise()
         }
 
     def __call__(self) -> Signal:
