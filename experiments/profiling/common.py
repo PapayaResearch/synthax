@@ -11,7 +11,7 @@ N_BATCHES = 1000
 N_ROUNDS = 100
 
 
-timer = time.perf_counterq
+timer = time.perf_counter
 
 
 def auto_device():

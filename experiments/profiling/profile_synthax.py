@@ -23,8 +23,7 @@ def main():
 
         synth = Voice(
             prng_key,
-            synth_cfg,
-            "" # Ignore the file loading for now
+            synth_cfg
         )
         init_params = synth.init(prng_key)
         keys = jax.random.split(prng_key, N_BATCHES)
