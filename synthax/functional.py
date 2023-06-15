@@ -38,19 +38,6 @@ def midi_to_hz(midi: chex.Array) -> chex.Array:
     """
     return 440.0 * (jnp.exp2((midi - 69.0) / 12.0))
 
-
-def fix_length(signal: Signal, length: int) -> Signal:
-    """
-    Pad or truncate (TODO) to specified length.
-    """
-    num_samples = signal.shape[1]
-    if num_samples < length:
-        signal = jnp.pad(signal, (0, length - num_samples))
-    elif num_samples > length:
-        signal = signal[:, :length]
-    return signal
-
-
 def normalize_if_clipping(signal: Signal) -> Signal:
     """
     Only normalize invidiaul signals in batch that have samples

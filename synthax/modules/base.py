@@ -27,7 +27,6 @@ import dataclasses
 from flax import linen as nn
 from synthax.config import SynthConfig
 from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec, to_0to1
-from synthax.functional import fix_length
 from synthax.types import Signal, is_parameter_spec
 
 
@@ -103,17 +102,6 @@ class SynthModule(nn.Module):
         """ Size of the module output in samples. """
         return self.config.buffer_size
 
-    def to_buffer_size(self, signal: Signal) -> Signal:
-        """
-        Fixes the length of a signal to the default buffer size of this module,
-        as specified by :attr:`~.SynthModule.buffer_size`. Longer signals are
-        truncated to length; shorter signals are zero-padded.
-
-        Args:
-            signal (Signal): A signal to pad or truncate.
-        """
-        return fix_length(signal, self.buffer_size)
-
     def seconds_to_samples(self, seconds: float):
         """
         Convenience function to calculate the number of samples corresponding to
@@ -154,17 +142,6 @@ class ControlRateModule(SynthModule):
     def control_buffer_size(self):
         """ Size of the module output in samples. """
         return self.config.control_buffer_size
-
-    def to_buffer_size(self, signal: Signal) -> Signal:
-        """
-        Fixes the length of a signal to the control buffer size of this module,
-        as specified by :attr:`~.ControlRateModule.control_buffer_size`. Longer
-        signals are truncated to length; shorter signals are zero-padded.
-
-        Args:
-            signal: A signal to pad or truncate.
-        """
-        return fix_length(signal, self.control_buffer_size)
 
     def seconds_to_samples(self, seconds: float):
         """
