@@ -20,4 +20,42 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# TODO: Implement filter modules
+import jax
+import jax.numpy as jnp
+from synthax.modules.base import SynthModule
+from synthax.types import Signal
+
+
+class LPF(SynthModule):
+    """Simple time-veritying low-pass filter.
+
+    Parameters:
+        order (int): Order of the filter.
+    """
+    order: int
+
+    def setup(self):
+        super().setup()
+
+    def __call__(self, audio_in: Signal, control_in: Signal):
+        def tv_lpf(input_signal: Signal, input_control: Signal) -> Signal:
+            dt = 1/self.config.sample_rate
+            taus = 1.0 / (2 * jnp.pi * input_control)
+
+            alphas = dt / (taus + dt)
+
+            state = jnp.zeros(self.order)
+
+            def one_step(state, inputs):
+                alpha, x = inputs
+                new_state = alpha * x + (1 - alpha) * state
+                return new_state, new_state
+
+            _, outputs = jax.lax.scan(
+                one_step,
+                state,
+                jnp.stack([alphas, input_signal], axis=-1)
+            )
+            return outputs[:, -1]
+
+        return jax.vmap(tv_lpf)(audio_in, control_in)
