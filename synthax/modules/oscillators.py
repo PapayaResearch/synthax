@@ -100,7 +100,8 @@ class VCO(SynthModule):
         """
         midi_f0 = jnp.expand_dims(
             midi_f0 + self.parameters["tuning"].from_0to1(),
-            axis=1)
+            axis=1
+        )
 
         # If there is no modulation, then convert the midi_f0 values to
         # frequency and return an expanded view that contains buffer size
@@ -114,7 +115,7 @@ class VCO(SynthModule):
         modulation = jnp.expand_dims(
             self.parameters["mod_depth"].from_0to1(),
             axis=1
-        )* mod_signal
+        ) * mod_signal
         control = jax.lax.clamp(0.0, midi_f0 + modulation, 127.0)
         return midi_to_hz(control)
 
@@ -201,16 +202,16 @@ class FmVCO(VCO):
             mod_signal (TODO): FM modulation signal (interpreted as modulation index).
         """
         # Compute modulation in Hz space (rather than midi-space).
-        f0_hz = midi_to_hz(
-            jnp.expand_dims(
-                midi_f0 + self.parameters["tuning"].from_0to1(),
-                axis=1
-            )
+        f0_hz = jnp.expand_dims(
+            midi_to_hz(
+                midi_f0 + self.parameters["tuning"].from_0to1()
+            ),
+            axis=1
         )
         fm_depth = jnp.expand_dims(
             self.parameters["mod_depth"].from_0to1(),
             axis=1
-        )* f0_hz
+        ) * f0_hz
         modulation_hz = fm_depth * mod_signal
         return jax.lax.clamp(0.0, f0_hz + modulation_hz, self.nyquist)
 
