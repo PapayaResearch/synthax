@@ -135,7 +135,7 @@ class LFO(ControlRateModule):
                 LFO base rate; negative values decrease it.
         """
         frequency = jnp.expand_dims(
-            self.parameters["initial_phase"].from_0to1(),
+            self.parameters["frequency"].from_0to1(),
             axis=1
         )
 
