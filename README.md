@@ -8,7 +8,7 @@
     <img src="https://github.com/PapayaResearch/synthax/blob/main/media/logo.png?raw=true" width="400" /></a>
 </h1>
 
-Do you want to leverage massive vectorization and high-throughput accelerators for modular synthesizers? `synthax` allows you to leverage JAX, XLA compilation and auto-vectorization/parallelization with your favorite accelerators. You can get started here: [![Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
+Do you want to leverage massive vectorization and high-throughput accelerators for modular synthesizers? `synthax` allows you to leverage JAX, XLA compilation and auto-vectorization/parallelization with your favorite accelerators. You can get started here: [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PapayaResearch/synthax/blob/main/examples/walkthrough.ipynb)
 
 ## Basic `synthax` API Usage
 
