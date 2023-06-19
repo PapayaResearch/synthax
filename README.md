@@ -1,4 +1,4 @@
-# SynthAX: A fast modular synthesizer in JAX ⚡️
+# SynthAX: A Fast Modular Synthesizer in JAX ⚡️
 [![Pyversions](https://img.shields.io/pypi/pyversions/synthax.svg?style=flat-square)](https://pypi.python.org/pypi/synthax)
 [![PyPI version](https://badge.fury.io/py/synthax.svg)](https://badge.fury.io/py/synthax)
 ![PyPI - License](https://img.shields.io/pypi/l/synthax)
@@ -14,10 +14,32 @@ Do you want to leverage massive vectorization and high-throughput accelerators f
 
 ```python
 import jax
-import synthax
+from synthax.config import SynthConfig
+from synthax.synth import ParametricSynth
 
-# TODO
-rng = jax.random.PRNGKey(42)
+# Generate PRNG key
+key = jax.random.PRNGKey(42)
+config = SynthConfig(
+    batch_size=16,
+    sample_rate=44100,
+    buffer_size_seconds=4.0
+)
+
+key, subkey = jax.random.split(key)
+# Instantiate synthesizer
+synth = ParametricSynth(
+    PRNG_key=subkey,
+    config=config,
+    sine=1,
+    square_saw=1,
+    fm_sine=1,
+    fm_square_saw=0
+)
+
+key, subkey = jax.random.split(key)
+# Initialize and run
+params = synth.init(subkey)
+audio = jax.jit(synth.apply)(params)
 ```
 
 ## Installation
@@ -43,15 +65,11 @@ If you use `synthax` in your research, please cite the following:
 ```
 @software{synthax2023,
   author = {Cherep, Manuel and Singh, Nikhil},
-  title = {SynthAX: A fast modular synthesizer in JAX},
+  title = {SynthAX: A Fast Modular Synthesizer in JAX},
   url = {https://github.com/PapayaResearch/synthax},
   version = {0.1.0},
   year = {2023},
 }
 ```
 
-This project is inspired by [torchsynth](https://github.com/torchsynth/torchsynth). We acknowledge financial support by Fulbright Spain.
-
-## Development
-
-You can run the test suite via `python -m pytest -vv --all`. Feel free to create an issue and/or start [contributing](CONTRIBUTING.md).
+This project is based on [torchsynth](https://github.com/torchsynth/torchsynth). We acknowledge financial support by Fulbright Spain.
