@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(name="synthax",
-      version="0.1.0",
+      version="0.1.1",
       url="https://github.com/PapayaResearch/synthax",
       author="Manuel Cherep, Nikhil Singh",
       author_email="mcherep@mit.edu, nsingh1@mit.edu",
