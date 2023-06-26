@@ -26,7 +26,7 @@ import chex
 import dataclasses
 from flax import linen as nn
 from synthax.config import SynthConfig
-from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec, to_0to1
+from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec
 from synthax.types import Signal, is_parameter_spec
 
 
@@ -64,7 +64,7 @@ class SynthModule(nn.Module):
         param = getattr(self, param_name)
         if isinstance(param, jnp.ndarray):
             rng = default_rng
-            val = to_0to1(param, rng)
+            val = param
         if isinstance(param, ModuleParameterRange):
             rng = param
             val = jax.random.uniform(
@@ -73,7 +73,7 @@ class SynthModule(nn.Module):
             )
         if isinstance(param, ModuleParameterSpec):
             rng = param.range
-            val = to_0to1(param.value, rng)
+            val = param.value
         return ModuleParameter(name=param_name, range=rng, value=val)
 
     @property

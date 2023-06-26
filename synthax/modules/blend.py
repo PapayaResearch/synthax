@@ -85,7 +85,8 @@ class SoftModeSelector(SynthModule):
     def __call__(self):
         # Normalize all mode weights so they sum to 1.0
         # TODO: Refactor get all values in SynthModule
-        parameter_values = [p.from_0to1() for k, p in self.parameters.items()]
+        # TODO: Loop is slow when jitted
+        parameter_values = [p._value for p in self.parameters.values()]
         parameter_values_exp = jnp.power(parameter_values, exponent=self.exponent)
         return parameter_values_exp / jnp.sum(parameter_values_exp, axis=0)
 
@@ -124,6 +125,7 @@ class HardModeSelector(SynthModule):
 
     def __call__(self):
         # TODO: Refactor get all values in SynthModule
-        parameter_values = [p.from_0to1() for k, p in self.parameters.items()]
+        # TODO: Loops are slow when jitted
+        parameter_values = [p._value for p in self.parameters.values()]
         idx = jnp.argmax(parameter_values, axis=0)
         return jax.nn.one_hot(idx, num_classes=len(parameter_values)).T

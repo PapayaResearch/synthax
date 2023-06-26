@@ -53,4 +53,4 @@ class MonophonicKeyboard(ControlRateModule):
     )
 
     def __call__(self):
-        return self.parameters["midi_f0"].from_0to1(), self.parameters["duration"].from_0to1()
+        return self.parameters["midi_f0"]._value, self.parameters["duration"]._value

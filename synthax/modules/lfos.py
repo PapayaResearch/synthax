@@ -108,7 +108,7 @@ class LFO(ControlRateModule):
         frequency = self.make_control(mod_signal)
         argument = jnp.cumsum(2 * jnp.pi * frequency / self.control_rate, axis=1)
         argument += jnp.expand_dims(
-            self.parameters["initial_phase"].from_0to1(),
+            self.parameters["initial_phase"]._value,
             axis=1
         )
 
@@ -116,8 +116,9 @@ class LFO(ControlRateModule):
         shapes = jnp.stack(self.make_lfo_shapes(argument), axis=1)
 
         # Apply mode selection to the LFO shapes
+        # TODO: Loop is slow when jitted
         mode = jnp.stack(
-            [self.parameters[lfo].from_0to1() for lfo in self.lfo_types],
+            [self.parameters[lfo]._value for lfo in self.lfo_types],
             axis=1
         )
         mode = jnp.power(mode, self.exponent)
@@ -135,7 +136,7 @@ class LFO(ControlRateModule):
                 LFO base rate; negative values decrease it.
         """
         frequency = jnp.expand_dims(
-            self.parameters["frequency"].from_0to1(),
+            self.parameters["frequency"]._value,
             axis=1
         )
 
@@ -145,7 +146,7 @@ class LFO(ControlRateModule):
             return jnp.broadcast_to(frequency, (frequency.shape[0], self.control_buffer_size))
 
         modulation = jnp.expand_dims(
-            self.parameters["mod_depth"].from_0to1(), axis=1
+            self.parameters["mod_depth"]._value, axis=1
         ) * mod_signal
 
         return jnp.maximum(frequency + modulation, 0.0)

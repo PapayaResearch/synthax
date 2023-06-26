@@ -94,8 +94,8 @@ class ADSR(ControlRateModule):
         """
 
         # Calculations to accommodate attack/decay phase cut by note duration.
-        attack = self.parameters["attack"].from_0to1()
-        decay = self.parameters["decay"].from_0to1()
+        attack = self.parameters["attack"]._value
+        decay = self.parameters["decay"]._value
 
         new_attack = jnp.minimum(attack, note_on_duration)
         new_decay = jnp.maximum(note_on_duration - attack, 0)
@@ -160,7 +160,7 @@ class ADSR(ControlRateModule):
         # Apply scaling factor.
         ramp = jnp.power(
             ramp,
-            jnp.expand_dims(self.parameters["alpha"].from_0to1(), axis=1)
+            jnp.expand_dims(self.parameters["alpha"]._value, axis=1)
         )
         return ramp
 
@@ -181,7 +181,7 @@ class ADSR(ControlRateModule):
             attack_time (TODO): Length of the attack in seconds.
             decay_time (TODO): Length of the decay time in seconds.
         """
-        sustain = jnp.expand_dims(self.parameters["sustain"].from_0to1(), axis=1)
+        sustain = jnp.expand_dims(self.parameters["sustain"]._value, axis=1)
         a = 1.0 - sustain
         b = self.ramp(decay_time, start=attack_time, inverse=True)
         return jnp.squeeze(a * b + sustain)
@@ -195,7 +195,7 @@ class ADSR(ControlRateModule):
                 when the midi note is released).
         """
         return self.ramp(
-            self.parameters["release"].from_0to1(),
+            self.parameters["release"]._value,
             start=note_on_duration,
             inverse=True
         )

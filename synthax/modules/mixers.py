@@ -30,7 +30,6 @@ from synthax.functional import normalize_if_clipping
 from synthax.types import Signal, ParameterSpec
 from typing import Optional
 
-
 class ModulationMixer(SynthModule):
     """
     A modulation matrix that combines :math:`N` input modulation signals to make
@@ -81,7 +80,7 @@ class ModulationMixer(SynthModule):
         Performs mixture of modulation signals.
         """
 
-        parameter_values = jnp.array([p.from_0to1() for k, p in self.parameters.items()])
+        parameter_values = jnp.array([p._value for p in self.parameters.values()])
         parameter_values = jnp.reshape(
             parameter_values,
             (self.batch_size, self.n_input, self.n_output)
@@ -95,6 +94,7 @@ class ModulationMixer(SynthModule):
             self.n_output,
             axis=1
         )
+
         return tuple(m.squeeze(1) for m in modulation)
 
 
@@ -137,7 +137,8 @@ class AudioMixer(SynthModule):
         """
         Returns a mixed signal from an array of input signals.
         """
-        parameter_values = jnp.stack([p.from_0to1() for k, p in self.parameters.items()], axis=1)
+        # TODO: Loop slow when jitted
+        parameter_values = jnp.stack([p._value for p in self.parameters.values()], axis=1)
         signals = jnp.stack(signals, axis=1)
         mixed_signal = normalize_if_clipping(
             jnp.matmul(
