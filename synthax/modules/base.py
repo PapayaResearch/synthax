@@ -56,38 +56,40 @@ class SynthModule(nn.Module):
             self._init_param(name, default_range)
 
     def _init_param(self, name, default_range, initializer=None):
-        parameter_spec = getattr(self, name)
-        if isinstance(parameter_spec, jnp.ndarray):
-            # Values are assumed to be within the parameter range
-            parameter_range = default_range
-            value = mode
-        if isinstance(parameter_spec, ModuleParameterRange):
-            parameter_range = parameter_spec
-            if initializer is None:
-                # Random initialization uniformly within the parameter range
-                value = jax.random.uniform(
-                    self.PRNG_key,
-                    shape=(self.config.batch_size,),
-                    minval=parameter_range.minimum,
-                    maxval=parameter_range.maximum
-                )
-            else:
-                # Custom initialization
-                value = initializer(parameter_range)
+        def init_param(PRNG_key: jax.random.PRNGKey):
+            parameter_spec = getattr(self, name)
+            if isinstance(parameter_spec, jnp.ndarray):
+                # Values are assumed to be within the parameter range
+                parameter_range = default_range
+                value = parameter_spec
+            if isinstance(parameter_spec, ModuleParameterRange):
+                parameter_range = parameter_spec
+                if initializer is None:
+                    # Random initialization uniformly within the parameter range
+                    value = jax.random.uniform(
+                        PRNG_key,
+                        shape=(self.config.batch_size,),
+                        minval=parameter_range.minimum,
+                        maxval=parameter_range.maximum
+                    )
+                else:
+                    # Custom initialization
+                    value = initializer(PRNG_key, parameter_range)
 
-        if isinstance(parameter_spec, ModuleParameterSpec):
-            # Values are assumed to be within the parameter range
-            parameter_range = parameter_spec.range_
-            value = parameter_spec.value
+            if isinstance(parameter_spec, ModuleParameterSpec):
+                # Values are assumed to be within the parameter range
+                parameter_range = parameter_spec.range_
+                value = parameter_spec.value
 
-        # TODO: save ranges as variables
+            return value
+
+        # TODO: save ranges
         setattr(
             self,
             "_"+name,
             self.param(
                 name,
-                lambda rng, shape: value,
-                value.shape
+                lambda rng: init_param(rng)
             )
         )
 

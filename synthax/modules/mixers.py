@@ -56,8 +56,8 @@ class ModulationMixer(SynthModule):
         # The default parameter range applies to all inputs
         default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
         default_range = default_ranges["mod"]
-        initializer = lambda range_: jax.random.uniform(
-            self.PRNG_key,
+        initializer = lambda PRNG_key, range_: jax.random.uniform(
+            PRNG_key,
             shape=(self.config.batch_size, self.n_output, self.n_input),
             minval=range_.minimum,
             maxval=range_.maximum
@@ -108,8 +108,8 @@ class AudioMixer(SynthModule):
         # The default parameter range applies to all inputs
         default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
         default_range = default_ranges["level"]
-        initializer = lambda range_: jax.random.uniform(
-            self.PRNG_key,
+        initializer = lambda PRNG_key, range_: jax.random.uniform(
+            PRNG_key,
             shape=(self.config.batch_size, self.n_input),
             minval=range_.minimum,
             maxval=range_.maximum

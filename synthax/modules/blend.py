@@ -72,8 +72,8 @@ class SoftModeSelector(SynthModule):
         # The default parameter range applies to all modes
         default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
         default_range = default_ranges["mode"]
-        initializer = lambda range_: jax.random.uniform(
-            self.PRNG_key,
+        initializer = lambda PRNG_key, range_: jax.random.uniform(
+            PRNG_key,
             shape=(self.n_modes, self.config.batch_size),
             minval=range_.minimum,
             maxval=range_.maximum
@@ -109,8 +109,8 @@ class HardModeSelector(SynthModule):
         # The default parameter range applies to all modes
         default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
         default_range = default_ranges["mode"]
-        initializer = lambda range_: jax.random.uniform(
-            self.PRNG_key,
+        initializer = lambda PRNG_key, range_: jax.random.uniform(
+            PRNG_key,
             shape=(self.n_modes, self.config.batch_size),
             minval=range_.minimum,
             maxval=range_.maximum
