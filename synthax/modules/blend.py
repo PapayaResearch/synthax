@@ -26,7 +26,7 @@ import chex
 import dataclasses
 from flax import linen as nn
 from synthax.modules.base import SynthModule
-from synthax.parameter import ModuleParameter, ModuleParameterRange
+from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.types import ParameterSpec
 from typing import Optional
@@ -58,7 +58,7 @@ class SoftModeSelector(SynthModule):
         PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_modes (int): TODO
         exponent (chex.Array): determines how strongly to scale each [0,1] value prior to normalization.
-        parameter_ranges (:class:`~synthax.parameter.ModuleParameterRange`): TODO.
+        mode (TODO): TODO
     """
 
     n_modes: int
@@ -69,26 +69,22 @@ class SoftModeSelector(SynthModule):
     )
 
     def setup(self):
-        param_names = []
-        for i in range(self.n_modes):
-            param_name = f"mode{i}weight"
-            param_names.append(param_name)
-            setattr(self, param_name, self.mode)
         # The default parameter range applies to all modes
-        default_values = {f.name: f.default for f in dataclasses.fields(self)}
-        default_rng = default_values["mode"]
-        self.parameters = {
-            name: self._init_param(name, default_rng)
-            for name in param_names
-        }
+        default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
+        default_range = default_ranges["mode"]
+        initializer = lambda range_: jax.random.uniform(
+            self.PRNG_key,
+            shape=(self.n_modes, self.config.batch_size),
+            minval=range_.minimum,
+            maxval=range_.maximum
+        )
+        # Initialize the parameter
+        self._init_param("mode", default_range, initializer)
 
     def __call__(self):
         # Normalize all mode weights so they sum to 1.0
-        # TODO: Refactor get all values in SynthModule
-        # TODO: Loop is slow when jitted
-        parameter_values = [p._value for p in self.parameters.values()]
-        parameter_values_exp = jnp.power(parameter_values, exponent=self.exponent)
-        return parameter_values_exp / jnp.sum(parameter_values_exp, axis=0)
+        values_exp = jnp.power(self._mode, self.exponent[0])
+        return values_exp / jnp.sum(values_exp, axis=0)
 
 
 class HardModeSelector(SynthModule):
@@ -100,7 +96,7 @@ class HardModeSelector(SynthModule):
         config (SynthConfig): Global configuration.
         PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_modes (int): TODO
-        parameter_ranges (:class:`~synthax.parameter.ModuleParameterRange`): TODO.
+        mode (TODO): TODO
     """
 
     n_modes: int
@@ -110,22 +106,18 @@ class HardModeSelector(SynthModule):
     )
 
     def setup(self):
-        param_names = []
-        for i in range(self.n_modes):
-            param_name = f"mode{i}weight"
-            param_names.append(param_name)
-            setattr(self, param_name, self.mode)
         # The default parameter range applies to all modes
-        default_values = {f.name: f.default for f in dataclasses.fields(self)}
-        default_rng = default_values["mode"]
-        self.parameters = {
-            name: self._init_param(name, default_rng)
-            for name in param_names
-        }
+        default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
+        default_range = default_ranges["mode"]
+        initializer = lambda range_: jax.random.uniform(
+            self.PRNG_key,
+            shape=(self.n_modes, self.config.batch_size),
+            minval=range_.minimum,
+            maxval=range_.maximum
+        )
+        # Initialize the parameter
+        self._init_param("mode", default_range, initializer)
 
     def __call__(self):
-        # TODO: Refactor get all values in SynthModule
-        # TODO: Loops are slow when jitted
-        parameter_values = [p._value for p in self.parameters.values()]
-        idx = jnp.argmax(parameter_values, axis=0)
-        return jax.nn.one_hot(idx, num_classes=len(parameter_values)).T
+        idx = jnp.argmax(self._mode, axis=0)
+        return jax.nn.one_hot(idx, num_classes=len(self._mode)).T

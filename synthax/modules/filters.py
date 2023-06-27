@@ -27,15 +27,13 @@ from synthax.types import Signal
 
 
 class LPF(SynthModule):
-    """Simple time-veritying low-pass filter.
+    """
+    Simple time-veritying low-pass filter.
 
-    Parameters:
+    Args:
         order (int): Order of the filter.
     """
     order: int
-
-    def setup(self):
-        super().setup()
 
     def __call__(self, audio_in: Signal, control_in: Signal):
         def tv_lpf(input_signal: Signal, input_control: Signal) -> Signal:

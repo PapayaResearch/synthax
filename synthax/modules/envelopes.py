@@ -23,7 +23,7 @@
 import jax
 import jax.numpy as jnp
 from synthax.modules.base import ControlRateModule
-from synthax.parameter import ModuleParameter, ModuleParameterRange
+from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.types import ParameterSpec, Signal
 from typing import Optional
@@ -94,12 +94,9 @@ class ADSR(ControlRateModule):
         """
 
         # Calculations to accommodate attack/decay phase cut by note duration.
-        attack = self.parameters["attack"]._value
-        decay = self.parameters["decay"]._value
-
-        new_attack = jnp.minimum(attack, note_on_duration)
-        new_decay = jnp.maximum(note_on_duration - attack, 0)
-        new_decay = jnp.minimum(new_decay, decay)
+        new_attack = jnp.minimum(self._attack, note_on_duration)
+        new_decay = jnp.maximum(note_on_duration - self._attack, 0)
+        new_decay = jnp.minimum(new_decay, self._decay)
 
         attack_signal = self.make_attack(new_attack)
         decay_signal = self.make_decay(new_attack, new_decay)
@@ -160,7 +157,7 @@ class ADSR(ControlRateModule):
         # Apply scaling factor.
         ramp = jnp.power(
             ramp,
-            jnp.expand_dims(self.parameters["alpha"]._value, axis=1)
+            jnp.expand_dims(self._alpha, axis=1)
         )
         return ramp
 
@@ -181,7 +178,7 @@ class ADSR(ControlRateModule):
             attack_time (TODO): Length of the attack in seconds.
             decay_time (TODO): Length of the decay time in seconds.
         """
-        sustain = jnp.expand_dims(self.parameters["sustain"]._value, axis=1)
+        sustain = jnp.expand_dims(self._sustain, axis=1)
         a = 1.0 - sustain
         b = self.ramp(decay_time, start=attack_time, inverse=True)
         return jnp.squeeze(a * b + sustain)
@@ -195,7 +192,7 @@ class ADSR(ControlRateModule):
                 when the midi note is released).
         """
         return self.ramp(
-            self.parameters["release"]._value,
+            self._release,
             start=note_on_duration,
             inverse=True
         )

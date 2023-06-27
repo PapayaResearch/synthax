@@ -6,7 +6,6 @@ from synthax.synth import Voice
 from synthax.config import SynthConfig
 from common import timer, auto_device, init_mem, measure_memory, cleanup_mem, get_devicetype, BATCH_SIZES, SAMPLE_RATE, SOUND_DURATION, N_BATCHES, N_ROUNDS
 
-
 def main():
     results = []
     device = auto_device()
@@ -25,27 +24,20 @@ def main():
             prng_key,
             synth_cfg
         )
-        init_params = synth.init(prng_key)
+
+        params = synth.init(prng_key)
         keys = jax.random.split(prng_key, N_BATCHES)
-        param_keys = flax.traverse_util.flatten_dict(init_params).keys()
 
         make_sound = jax.jit(synth.apply)
 
-        @jax.jit
-        def randomize_params(key):
-            return jax.random.uniform(key, shape=(len(param_keys), batch_size))
-
         # Initial run; we don't count this
-        params_randomized = randomize_params(prng_key)
-        params = flax.traverse_util.unflatten_dict(dict(zip(param_keys, params_randomized)))
         make_sound(params)
 
         for k in tqdm(range(N_ROUNDS), leave=False):
             m_pre = measure_memory(device)
             t = timer()
             for i in tqdm(range(N_BATCHES), leave=False):
-                params_randomized = randomize_params(keys[i])
-                params = flax.traverse_util.unflatten_dict(dict(zip(param_keys, params_randomized)))
+                # TODO: Re-init params
                 _ = make_sound(params)
             t = timer() - t
             m_post = measure_memory(device)

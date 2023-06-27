@@ -26,7 +26,7 @@ import chex
 import dataclasses
 from flax import linen as nn
 from synthax.config import SynthConfig
-from synthax.parameter import ModuleParameter, ModuleParameterRange, ModuleParameterSpec
+from synthax.parameter import ModuleParameterRange, ModuleParameterSpec
 from synthax.types import Signal, is_parameter_spec
 
 
@@ -34,9 +34,6 @@ class SynthModule(nn.Module):
     """
     A base class for synthesis modules. A :class:`~.SynthModule`
     optionally takes input from other :class:`~.SynthModule` instances.
-    The :class:`~.SynthModule` uses its (optional) input and its
-    set of :class:`~synthax.parameter.ModuleParameter` to generate
-    output.
 
     All :class:`~.SynthModule` objects should be atomic, i.e., they
     should not contain other :class:`~.SynthModule` objects. This
@@ -52,29 +49,47 @@ class SynthModule(nn.Module):
     PRNG_key: jax.random.PRNGKey
 
     def setup(self):
-        # Filter all ParameterSpec default values
-        default_values = {f.name: f.default
+        # Filter all ParameterSpec default ranges
+        default_ranges = {f.name: f.default
                           for f in dataclasses.fields(self) if is_parameter_spec(f.type)}
-        self.parameters = {
-            name: self._init_param(name, default_value)
-            for name, default_value in default_values.items()
-        }
+        for name, default_range in default_ranges.items():
+            self._init_param(name, default_range)
 
-    def _init_param(self, param_name, default_rng):
-        param = getattr(self, param_name)
-        if isinstance(param, jnp.ndarray):
-            rng = default_rng
-            val = param
-        if isinstance(param, ModuleParameterRange):
-            rng = param
-            val = jax.random.uniform(
-                self.PRNG_key,
-                shape=(self.config.batch_size,)
+    def _init_param(self, name, default_range, initializer=None):
+        parameter_spec = getattr(self, name)
+        if isinstance(parameter_spec, jnp.ndarray):
+            # Values are assumed to be within the parameter range
+            parameter_range = default_range
+            value = mode
+        if isinstance(parameter_spec, ModuleParameterRange):
+            parameter_range = parameter_spec
+            if initializer is None:
+                # Random initialization uniformly within the parameter range
+                value = jax.random.uniform(
+                    self.PRNG_key,
+                    shape=(self.config.batch_size,),
+                    minval=parameter_range.minimum,
+                    maxval=parameter_range.maximum
+                )
+            else:
+                # Custom initialization
+                value = initializer(parameter_range)
+
+        if isinstance(parameter_spec, ModuleParameterSpec):
+            # Values are assumed to be within the parameter range
+            parameter_range = parameter_spec.range_
+            value = parameter_spec.value
+
+        # TODO: save ranges as variables
+        setattr(
+            self,
+            "_"+name,
+            self.param(
+                name,
+                lambda rng, shape: value,
+                value.shape
             )
-        if isinstance(param, ModuleParameterSpec):
-            rng = param.range
-            val = param.value
-        return ModuleParameter(name=param_name, range=rng, value=val)
+        )
 
     @property
     def batch_size(self):

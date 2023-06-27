@@ -24,12 +24,11 @@ import jax
 import jax.numpy as jnp
 import chex
 from synthax.modules.base import SynthModule
-from synthax.parameter import ModuleParameter, ModuleParameterRange
+from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.functional import midi_to_hz
 from synthax.types import Signal, ParameterSpec
 from typing import Optional
-
 
 class VCO(SynthModule):
     """
@@ -76,13 +75,13 @@ class VCO(SynthModule):
             mod_signal (TODO): Modulation signal to apply to the pitch.
         """
 
-        control_as_frequency = self.make_control_as_frequency(midi_f0, mod_signal)
-        cosine_argument = self.make_argument(control_as_frequency)
+        control_as_frequency = self.make_control_as_frequency(midi_f0, mod_signal) # TODO: Slow
+        cosine_argument = self.make_argument(control_as_frequency) # TODO: Slow
         cosine_argument += jnp.expand_dims(
-            self.parameters["initial_phase"]._value,
+            self._initial_phase,
             axis=1
         )
-        signal = self.oscillator(cosine_argument, midi_f0)
+        signal = self.oscillator(cosine_argument, midi_f0) # TODO: Slow
         return signal
 
     def make_control_as_frequency(
@@ -99,7 +98,7 @@ class VCO(SynthModule):
             mod_signal (TODO): Pitch modulation signal in midi.
         """
         midi_f0 = jnp.expand_dims(
-            midi_f0 + self.parameters["tuning"]._value,
+            midi_f0 + self._tuning,
             axis=1
         )
 
@@ -113,7 +112,7 @@ class VCO(SynthModule):
         # If there is modulation, then add that to the fundamental,
         # clamp to a range [0.0, 127.0], then return in frequency Hz.
         modulation = jnp.expand_dims(
-            self.parameters["mod_depth"]._value,
+            self._mod_depth,
             axis=1
         ) * mod_signal
         control = jax.lax.clamp(0.0, midi_f0 + modulation, 127.0)
@@ -204,12 +203,12 @@ class FmVCO(VCO):
         # Compute modulation in Hz space (rather than midi-space).
         f0_hz = jnp.expand_dims(
             midi_to_hz(
-                midi_f0 + self.parameters["tuning"]._value
+                midi_f0 + self._tuning
             ),
             axis=1
         )
         fm_depth = jnp.expand_dims(
-            self.parameters["mod_depth"]._value,
+            self._mod_depth,
             axis=1
         ) * f0_hz
         modulation_hz = fm_depth * mod_signal
@@ -275,7 +274,7 @@ class SquareSawVCO(VCO):
         """
         partials = jnp.expand_dims(self.partials_constant(midi_f0), axis=1)
         square = jnp.tanh(jnp.pi * partials * jnp.sin(argument) / 2)
-        shape = jnp.expand_dims(self.parameters["shape"]._value, axis=1)
+        shape = jnp.expand_dims(self._shape, axis=1)
         return (1 - shape / 2) * square * (1 + shape * jnp.cos(argument))
 
     def partials_constant(self, midi_f0):
@@ -290,7 +289,7 @@ class SquareSawVCO(VCO):
             midi_f0 (TODO): Fundamental frequency in midi.
         """
         max_pitch = (
-            midi_f0 + self.parameters["tuning"]._value + jnp.maximum(self.parameters["mod_depth"]._value, 0)
+            midi_f0 + self._tuning + jnp.maximum(self._mod_depth, 0)
         )
         max_f0 = midi_to_hz(max_pitch)
         return 12000 / (max_f0 * jnp.log10(max_f0))
@@ -334,10 +333,7 @@ class Noise(SynthModule):
                 ),
                 (self.batch_size, self.buffer_size)
             )
-        self.parameters = {
-            "noise": make_noise()
-        }
+        self._noise = make_noise()
 
     def __call__(self) -> Signal:
-        signal = self.parameters["noise"]
-        return signal
+        return self._noise

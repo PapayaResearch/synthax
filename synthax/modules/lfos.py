@@ -24,7 +24,7 @@ import jax
 import jax.numpy as jnp
 import chex
 from synthax.modules.base import ControlRateModule
-from synthax.parameter import ModuleParameter, ModuleParameterRange
+from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.types import ParameterSpec, Signal
 from typing import Optional
@@ -94,7 +94,7 @@ class LFO(ControlRateModule):
 
     def setup(self):
         super().setup()
-        self.lfo_types = ["sin", "tri", "saw", "rsaw", "sqr"]
+        self.lfo_types = ["_sin", "_tri", "_saw", "_rsaw", "_sqr"]
 
     def __call__(self, mod_signal: Optional[Signal] = None):
         """
@@ -108,7 +108,7 @@ class LFO(ControlRateModule):
         frequency = self.make_control(mod_signal)
         argument = jnp.cumsum(2 * jnp.pi * frequency / self.control_rate, axis=1)
         argument += jnp.expand_dims(
-            self.parameters["initial_phase"]._value,
+            self._initial_phase,
             axis=1
         )
 
@@ -116,9 +116,9 @@ class LFO(ControlRateModule):
         shapes = jnp.stack(self.make_lfo_shapes(argument), axis=1)
 
         # Apply mode selection to the LFO shapes
-        # TODO: Loop is slow when jitted
+        # TODO: Loops are typically slow when jitted
         mode = jnp.stack(
-            [self.parameters[lfo]._value for lfo in self.lfo_types],
+            [getattr(self, lfo) for lfo in self.lfo_types],
             axis=1
         )
         mode = jnp.power(mode, self.exponent)
@@ -136,7 +136,7 @@ class LFO(ControlRateModule):
                 LFO base rate; negative values decrease it.
         """
         frequency = jnp.expand_dims(
-            self.parameters["frequency"]._value,
+            self._frequency,
             axis=1
         )
 
@@ -146,7 +146,7 @@ class LFO(ControlRateModule):
             return jnp.broadcast_to(frequency, (frequency.shape[0], self.control_buffer_size))
 
         modulation = jnp.expand_dims(
-            self.parameters["mod_depth"]._value, axis=1
+            self._mod_depth, axis=1
         ) * mod_signal
 
         return jnp.maximum(frequency + modulation, 0.0)

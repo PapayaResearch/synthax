@@ -127,24 +127,7 @@ class VoiceExpanded(BaseSynth):
             ("control_upsample", ControlRateUpsample, {}),
             ("mod_matrix", ModulationMixer, {
                 "n_input": 6,
-                "n_output": 7,
-                "input_names": [
-                    "adsr_1",
-                    "adsr_2",
-                    "adsr_3",
-                    "lfo_1",
-                    "lfo_2",
-                    "lfo_3"
-                ],
-                "output_names": [
-                    "vco_1_pitch",
-                    "vco_1_amp",
-                    "vco_2_pitch",
-                    "vco_2_amp",
-                    "vco_3_pitch",
-                    "vco_3_amp",
-                    "noise_amp",
-                ]
+                "n_output": 7
             }
             ),
             ("vco_1", SineVCO, {}),
@@ -155,7 +138,6 @@ class VoiceExpanded(BaseSynth):
             ("vca", VCA, {}),
             ("mixer", AudioMixer, {
                 "n_input": 4,
-                "names": ["vco_1", "vco_2", "vco_4", "noise"]
             })
         ]
 
@@ -260,20 +242,7 @@ class Voice(BaseSynth):
             ("control_upsample", ControlRateUpsample, {}),
             ("mod_matrix", ModulationMixer, {
                 "n_input": 4,
-                "n_output": 5,
-                "input_names": [
-                    "adsr_1",
-                    "adsr_2",
-                    "lfo_1",
-                    "lfo_2",
-                ],
-                "output_names": [
-                    "vco_1_pitch",
-                    "vco_1_amp",
-                    "vco_2_pitch",
-                    "vco_2_amp",
-                    "noise_amp",
-                ]
+                "n_output": 5
             }
             ),
             ("vco_1", SineVCO, {}),
@@ -282,7 +251,6 @@ class Voice(BaseSynth):
             ("vca", VCA, {}),
             ("mixer", AudioMixer, {
                 "n_input": 3,
-                "names": ["vco_1", "vco_2", "noise"]
             })
         ]
 
@@ -426,9 +394,7 @@ class ParametricSynth(BaseSynth):
                 ModulationMixer,
                 {
                     "n_input": len(mod_input),
-                    "n_output": len(mod_output) + 1,
-                    "input_names": mod_input,
-                    "output_names": mod_output + ["noise_amp"],
+                    "n_output": len(mod_output) + 1
                 },
              )
         )
@@ -440,7 +406,6 @@ class ParametricSynth(BaseSynth):
                 AudioMixer,
                 {
                     "n_input": len(mixable_vcos) + 1, # VCOs + noise
-                    "names": mixable_vcos + ["noise"],
                 },
             )
         )

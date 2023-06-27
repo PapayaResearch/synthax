@@ -24,7 +24,7 @@ import jax
 import jax.numpy as jnp
 import dataclasses
 from synthax.modules.base import SynthModule
-from synthax.parameter import ModuleParameter, ModuleParameterRange
+from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.functional import normalize_if_clipping
 from synthax.types import Signal, ParameterSpec
@@ -41,15 +41,11 @@ class ModulationMixer(SynthModule):
         PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_input (int): Number of input signals to module mix.
         n_output (int): Number of output signals to generate.
-        input_names (List(str)): TODO
-        output_names (List(str)): TODO
         mod (ParameterSpec): TODO.
     """
 
     n_input: int
     n_output: int
-    input_names: Optional[list[str]] = None
-    output_names: Optional[list[str]] = None
     mod: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
@@ -57,46 +53,37 @@ class ModulationMixer(SynthModule):
     )
 
     def setup(self):
-        param_names = []
-        for i in range(self.n_input):
-            for j in range(self.n_output):
-                # Apply custom param name if it was passed in
-                if self.input_names is not None:
-                    param_name = f"{self.input_names[i]}->{self.output_names[j]}"
-                else:
-                    param_name = f"{i}->{j}"
-                param_names.append(param_name)
-                setattr(self, param_name, self.mod)
-        # The default parameter range applies to all modes
-        default_values = {f.name: f.default for f in dataclasses.fields(self)}
-        default_rng = default_values["mod"]
-        self.parameters = {
-            name: self._init_param(name, default_rng)
-            for name in param_names
-        }
+        # The default parameter range applies to all inputs
+        default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
+        default_range = default_ranges["mod"]
+        initializer = lambda range_: jax.random.uniform(
+            self.PRNG_key,
+            shape=(self.config.batch_size, self.n_output, self.n_input),
+            minval=range_.minimum,
+            maxval=range_.maximum
+        )
+        # Initialize the parameter
+        self._init_param("mod", default_range, initializer)
 
     def __call__(self, *signals: Signal):
         """
         Performs mixture of modulation signals.
         """
 
-        parameter_values = jnp.array([p._value for p in self.parameters.values()])
-        parameter_values = jnp.reshape(
-            parameter_values,
-            (self.batch_size, self.n_input, self.n_output)
-        )
-        parameter_values = jnp.swapaxes(parameter_values, 1, 2)
-
         signals = jnp.stack(signals, axis=1)
 
         modulation = jnp.array_split(
-            jnp.matmul(parameter_values, signals),
+            jnp.matmul(self._mod, signals),
             self.n_output,
             axis=1
         )
 
-        return tuple(m.squeeze(1) for m in modulation)
+        # modulation = jnp.matmul(self._mod, signals)
+        # modulation = modulation.reshape(self.n_output, -1, modulation.shape[-1])
+        # return modulation
 
+        # TODO: Loop slow when jitted
+        return tuple(m.squeeze(1) for m in modulation)
 
 class AudioMixer(SynthModule):
     """
@@ -107,12 +94,10 @@ class AudioMixer(SynthModule):
         config (:class:`~synthax.config.SynthConfig`): Configuration.
         PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_input (int): TODO
-        names (List[str]): TODO
         level (ParameterSpec): TODO
     """
 
     n_input: int
-    names: Optional[list[str]] = None
     level: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
@@ -120,30 +105,29 @@ class AudioMixer(SynthModule):
     )
 
     def setup(self):
-        param_names = []
-        for i in range(self.n_input):
-            param_name = f"level{i}" if self.names is None else self.names[i]
-            param_names.append(param_name)
-            setattr(self, param_name, self.level)
-        # The default parameter range applies to all modes
-        default_values = {f.name: f.default for f in dataclasses.fields(self)}
-        default_rng = default_values["level"]
-        self.parameters = {
-            name: self._init_param(name, default_rng)
-            for name in param_names
-        }
+        # The default parameter range applies to all inputs
+        default_ranges = {f.name: f.default for f in dataclasses.fields(self)}
+        default_range = default_ranges["level"]
+        initializer = lambda range_: jax.random.uniform(
+            self.PRNG_key,
+            shape=(self.config.batch_size, self.n_input),
+            minval=range_.minimum,
+            maxval=range_.maximum
+        )
+        # Initialize the parameter
+        self._init_param("level", default_range, initializer)
 
     def __call__(self, *signals: Signal):
         """
         Returns a mixed signal from an array of input signals.
         """
-        # TODO: Loop slow when jitted
-        parameter_values = jnp.stack([p._value for p in self.parameters.values()], axis=1)
-        signals = jnp.stack(signals, axis=1)
+        signals = jnp.stack(signals, axis=1) # TODO: Slow stack
+
         mixed_signal = normalize_if_clipping(
             jnp.matmul(
-                jnp.expand_dims(parameter_values, 1),
+                jnp.expand_dims(self._level, 1),
                 signals
-            ).squeeze(1)
-        )
+            ).squeeze(1) # TODO: Slow matmul
+        ) # TODO: Slow normalize_if_clipping
+
         return mixed_signal

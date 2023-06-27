@@ -23,7 +23,7 @@
 import jax
 from flax import linen as nn
 from synthax.modules.base import ControlRateModule
-from synthax.parameter import ModuleParameter, ModuleParameterRange
+from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
 from synthax.types import ParameterSpec
 from typing import Optional
@@ -53,4 +53,4 @@ class MonophonicKeyboard(ControlRateModule):
     )
 
     def __call__(self):
-        return self.parameters["midi_f0"]._value, self.parameters["duration"]._value
+        return self._midi_f0, self._duration
