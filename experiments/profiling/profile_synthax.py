@@ -25,7 +25,8 @@ def main():
             synth_cfg
         )
 
-        params = synth.init(prng_key)
+        init_params = jax.jit(synth.init)
+        params = init_params(prng_key)
         keys = jax.random.split(prng_key, N_BATCHES)
 
         make_sound = jax.jit(synth.apply)
@@ -37,7 +38,7 @@ def main():
             m_pre = measure_memory(device)
             t = timer()
             for i in tqdm(range(N_BATCHES), leave=False):
-                # TODO: Re-init params
+                params = init_params(keys[i])
                 _ = make_sound(params)
             t = timer() - t
             m_post = measure_memory(device)
