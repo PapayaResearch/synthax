@@ -42,11 +42,9 @@ class SynthModule(nn.Module):
     Args:
         config (SynthConfig): An object containing synthesis settings
             that are shared across all modules.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     config: SynthConfig
-    PRNG_key: jax.random.PRNGKey
 
     def setup(self):
         # Filter all ParameterSpec default ranges
@@ -139,7 +137,6 @@ class ControlRateModule(SynthModule):
     Args:
         config (SynthConfig): An object containing synthesis settings
             that are shared across all modules.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     @property

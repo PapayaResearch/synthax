@@ -38,7 +38,6 @@ class ModulationMixer(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_input (int): Number of input signals to module mix.
         n_output (int): Number of output signals to generate.
         mod (ParameterSpec): TODO.
@@ -92,7 +91,6 @@ class AudioMixer(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_input (int): TODO
         level (ParameterSpec): TODO
     """
@@ -101,7 +99,7 @@ class AudioMixer(SynthModule):
     level: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
-        curve=1.0,
+        curve=1.0
     )
 
     def setup(self):

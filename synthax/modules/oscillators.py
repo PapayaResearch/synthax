@@ -40,8 +40,7 @@ class VCO(SynthModule):
     stationary audio signal at its base pitch.
 
     Args:
-        config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (SynthConfig): See :class:`~synthax.module.SynthModule`
         tuning (ParameterSpec): TODO
         mod_depth (ParameterSpec): TODO
         initial_phase (ParameterSpec): TODO
@@ -144,8 +143,7 @@ class SineVCO(VCO):
     Simple VCO that generates a pitched sinusoid.
 
     Args:
-        config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (SynthConfig): See :class:`~synthax.module.SynthModule`
     """
 
     def oscillator(self, argument: Signal, midi_f0: chex.Array) -> Signal:
@@ -175,8 +173,7 @@ class FmVCO(VCO):
     frequency, both in Hz.
 
     Args:
-        config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (SynthConfig): See :class:`~synthax.module.SynthModule`
     """
 
     # We include this override to output to make mod_signal non-optional
@@ -237,8 +234,7 @@ class SquareSawVCO(VCO):
     Computer Music Journal 34, no. 1: 28-40.
 
     Args:
-        config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (SynthConfig): See :class:`~synthax.module.SynthModule`
         tuning (ParameterSpec): TODO
         mod_depth (ParameterSpec): TODO
         initial_phase (ParameterSpec): TODO
@@ -318,15 +314,14 @@ class Noise(SynthModule):
     each `Noise` with a unique seed.
 
     Args:
-        config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
+        config (SynthConfig): See :class:`~synthax.module.SynthModule`
     """
 
     def setup(self):
         def make_noise():
             return jnp.broadcast_to(
                 jax.random.uniform(
-                    self.PRNG_key,
+                    self.make_rng("params"),
                     shape=(1, self.buffer_size),
                     minval=-1.0,
                     maxval=1.0

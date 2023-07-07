@@ -37,7 +37,6 @@ class VCA(SynthModule):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     def __call__(self, audio_in: Signal, control_in: Signal):
@@ -55,7 +54,6 @@ class ControlRateVCA(ControlRateModule):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     def __call__(self, audio_in: Signal, control_in: Signal):

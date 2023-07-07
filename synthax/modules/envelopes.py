@@ -35,7 +35,6 @@ class ADSR(ControlRateModule):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         attack (ParameterSpec): TODO
         decay (ParameterSpec): TODO
         sustain (ParameterSpec): TODO

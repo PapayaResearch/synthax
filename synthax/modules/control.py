@@ -37,7 +37,6 @@ class ControlRateUpsample(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
     """
 
     def __call__(self, signal):

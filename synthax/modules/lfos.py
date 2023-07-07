@@ -40,7 +40,6 @@ class LFO(ControlRateModule):
 
     Args:
         config (SynthConfig): See :class:`~synthax.module.SynthConfig`.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         exponent: A non-negative value that determines the discrimination of the
             soft-max selector for LFO shapes. Higher values will tend to favour
             one LFO shape over all others. Lower values will result in a more

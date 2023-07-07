@@ -36,7 +36,6 @@ class MonophonicKeyboard(ControlRateModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         midi_f0 (ParameterSpec): TODO
         duration (ParameterSpec): TODO
     """

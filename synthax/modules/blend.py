@@ -38,7 +38,6 @@ class CrossfadeKnob(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         ratio (ParameterSpec): TODO
     """
 
@@ -94,7 +93,6 @@ class HardModeSelector(SynthModule):
 
     Args:
         config (SynthConfig): Global configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         n_modes (int): TODO
         mode (TODO): TODO
     """

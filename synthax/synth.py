@@ -47,11 +47,9 @@ class BaseSynth(nn.Module):
     architecture.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (:class:`~synthax.config.SynthConfig`): Global configuration.
     """
 
-    PRNG_key: jax.random.PRNGKey
     config: SynthConfig
 
 
@@ -103,7 +101,6 @@ class VoiceExpanded(BaseSynth):
     sample rate before being passed to audio rate modules.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (:class:`~synthax.config.SynthConfig`): Global configuration.
     """
 
@@ -141,11 +138,9 @@ class VoiceExpanded(BaseSynth):
             })
         ]
 
-        key = self.PRNG_key
         modules = {}
         for name, module, params in modules_spec:
-            key, subkey = jax.random.split(key)
-            modules[name] = module(PRNG_key=subkey, config=self.config, **params)
+            modules[name] = module(config=self.config, **params)
 
         self.modules = modules
 
@@ -222,7 +217,6 @@ class Voice(BaseSynth):
     sample rate before being passed to audio rate modules.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (:class:`~synthax.config.SynthConfig`): Global configuration.
     """
 
@@ -254,11 +248,9 @@ class Voice(BaseSynth):
             })
         ]
 
-        key = self.PRNG_key
         modules = {}
         for name, module, params in modules_spec:
-            key, subkey = jax.random.split(key)
-            modules[name] = module(PRNG_key=subkey, config=self.config, **params)
+            modules[name] = module(config=self.config, **params)
 
         self.modules = modules
 
@@ -309,7 +301,6 @@ class ParametricSynth(BaseSynth):
     Define a synthesizer given the number of VCOs by type.
 
     Args:
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
         config (:class:`~synthax.config.SynthConfig`): Global configuration.
         sine (int): Number of :class:`~synthax.modules.oscillators.SineVCO`
         square_saw (int): Number of :class:`~synthax.modules.oscillators.SquareSawVCO`
@@ -410,11 +401,9 @@ class ParametricSynth(BaseSynth):
             )
         )
 
-        key = self.PRNG_key
         modules = {}
         for name, module, params in modules_spec:
-            key, subkey = jax.random.split(key)
-            modules[name] = module(PRNG_key=subkey, config=self.config, **params)
+            modules[name] = module(config=self.config, **params)
 
         self.modules = modules
 
