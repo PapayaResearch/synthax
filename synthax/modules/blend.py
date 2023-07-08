@@ -38,7 +38,7 @@ class CrossfadeKnob(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        ratio (ParameterSpec): TODO
+        ratio (synthax.types.ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     ratio: Optional[ParameterSpec] = ModuleParameterRange(
@@ -54,10 +54,9 @@ class SoftModeSelector(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Global configuration.
-        PRNG_key (jax.random.PRNGKey): PRNG key already split.
-        n_modes (int): TODO
+        n_modes (int): Number of modes.
         exponent (chex.Array): determines how strongly to scale each [0,1] value prior to normalization.
-        mode (TODO): TODO
+        mode (synthax.types.ParameterSpec): Accepts a parameter range, initial values or both, for all modes equally.
     """
 
     n_modes: int
@@ -93,8 +92,8 @@ class HardModeSelector(SynthModule):
 
     Args:
         config (SynthConfig): Global configuration.
-        n_modes (int): TODO
-        mode (TODO): TODO
+        n_modes (int): Number of modes.
+        mode (synthax.types.ParameterSpec): Accepts a parameter range, initial values or both, for all modes equally.
     """
 
     n_modes: int

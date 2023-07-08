@@ -22,6 +22,7 @@
 
 import jax
 import jax.numpy as jnp
+import chex
 from synthax.modules.base import ControlRateModule
 from synthax.parameter import ModuleParameterRange
 from synthax.config import SynthConfig
@@ -35,11 +36,11 @@ class ADSR(ControlRateModule):
 
     Args:
         config (SynthConfig): See :class:`~synhtax.module.SynthModule`
-        attack (ParameterSpec): TODO
-        decay (ParameterSpec): TODO
-        sustain (ParameterSpec): TODO
-        release (ParameterSpec): TODO
-        alpha (ParameterSpec): TODO
+        attack (ParameterSpec): Accepts a parameter range, initial values or both.
+        decay (ParameterSpec): Accepts a parameter range, initial values or both.
+        sustain (ParameterSpec): Accepts a parameter range, initial values or both.
+        release (ParameterSpec): Accepts a parameter range, initial values or both.
+        alpha (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     attack: Optional[ParameterSpec] = ModuleParameterRange(
@@ -89,7 +90,7 @@ class ADSR(ControlRateModule):
         behind the scenes to make the playing experience feel natural.
 
         Args:
-            note_on_duration (TODO): Duration of note on event in seconds.
+            note_on_duration (chex.Array): Duration of note on event in seconds.
         """
 
         # Calculations to accommodate attack/decay phase cut by note duration.
@@ -107,8 +108,8 @@ class ADSR(ControlRateModule):
 
     def ramp(
             self,
-            duration: float,
-            start: Optional[float] = None,
+            duration: chex.Array,
+            start: Optional[chex.Array] = None,
             inverse: Optional[bool] = False
     ) -> Signal:
         """
@@ -119,9 +120,9 @@ class ADSR(ControlRateModule):
         applying a scaling factor :attr:`~alpha`.
 
         Args:
-            duration (TODO): Length of the ramp in seconds.
-            start (TODO): Initial delay of ramp in seconds.
-            inverse (TODO): Toggle to flip the ramp from ascending to descending.
+            duration (chex.Array): Length of the ramp in seconds.
+            start (chex.Array): Initial delay of ramp in seconds.
+            inverse (bool): Toggle to flip the ramp from ascending to descending.
         """
 
         duration = jnp.expand_dims(self.seconds_to_samples(duration), axis=1)
@@ -165,7 +166,7 @@ class ADSR(ControlRateModule):
         Builds the attack portion of the envelope.
 
         Args:
-            attack_time (TODO): Length of the attack in seconds.
+            attack_time (chex.Array): Length of the attack in seconds.
         """
         return self.ramp(attack_time)
 
@@ -174,8 +175,8 @@ class ADSR(ControlRateModule):
         Creates the decay portion of the envelope.
 
         Args:
-            attack_time (TODO): Length of the attack in seconds.
-            decay_time (TODO): Length of the decay time in seconds.
+            attack_time (chex.Array): Length of the attack in seconds.
+            decay_time (chex.Array): Length of the decay time in seconds.
         """
         sustain = jnp.expand_dims(self._sustain, axis=1)
         a = 1.0 - sustain
@@ -187,7 +188,7 @@ class ADSR(ControlRateModule):
         Creates the release portion of the envelope.
 
         Args:
-            note_on_duration (TODO): Duration of midi note in seconds (release starts
+            note_on_duration (chex.Array): Duration of midi note in seconds (release starts
                 when the midi note is released).
         """
         return self.ramp(

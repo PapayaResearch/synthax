@@ -36,8 +36,8 @@ class MonophonicKeyboard(ControlRateModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        midi_f0 (ParameterSpec): TODO
-        duration (ParameterSpec): TODO
+        midi_f0 (ParameterSpec): Accepts a parameter range, initial values or both.
+        duration (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     midi_f0: Optional[ParameterSpec] = ModuleParameterRange(

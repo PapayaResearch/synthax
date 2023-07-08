@@ -81,7 +81,6 @@ class SynthModule(nn.Module):
 
             return value
 
-        # TODO: save ranges
         setattr(
             self,
             "_"+name,

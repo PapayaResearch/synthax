@@ -25,11 +25,8 @@ Parameters for DDSP Modules
 """
 
 import jax
-import chex
-from flax import linen as nn
 from flax import struct
-import jax.numpy as jnp
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 @struct.dataclass
 class ModuleParameterRange:
@@ -58,79 +55,6 @@ class ModuleParameterRange:
     curve: float = 1.0
     symmetric: bool = False
 
-
-def from_0to1(normalized: jax.typing.ArrayLike, range: ModuleParameterRange) -> jax.typing.ArrayLike:
-    """
-    Set value of this parameter using a normalized value in the range [0,1]
-
-    Args:
-        normalized (float): value within machine-readable range [0, 1] to convert to
-            human-readable range [minimum, maximum].
-    """
-    if not range.symmetric:
-        if range.curve != 1.0:
-            normalized = jnp.exp2(jnp.log2(normalized) / range.curve)
-
-        return range.minimum + (range.maximum - range.minimum) * normalized
-
-    # Compute the curve for a symmetric curve
-    dist = 2.0 * normalized - 1.0
-    if range.curve != 1.0:
-        normalized = jnp.where(
-            dist == 0.0,
-            dist,
-            jnp.exp2(jnp.log2(jnp.abs(dist)) / range.curve) * jnp.sign(dist),
-        )
-
-    return range.minimum + (range.maximum - range.minimum) / 2.0 * (normalized + 1.0)
-
-
-def to_0to1(value: jax.typing.ArrayLike, range: ModuleParameterRange) -> jax.typing.ArrayLike:
-    """
-    Convert from human-readable range [minimum, maximum] to machine-range [0, 1].
-
-    Args:
-        value (chex.Array): value within the range defined by minimum and maximum
-    """
-    normalized = (value - range.minimum) / (range.maximum - range.minimum)
-
-    if not range.symmetric:
-        if range.curve != 1:
-            normalized = jnp.power(normalized, range.curve)
-        return normalized
-
-    dist = 2.0 * normalized - 1.0
-    return (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0
-
-
 class ModuleParameterSpec(NamedTuple):
-    range: ModuleParameterRange
+    range_: ModuleParameterRange
     value: jax.typing.ArrayLike
-
-class ModuleParameter(nn.Module):
-    """
-    Args:
-        name (str): A name for this parameter
-        range (ModuleParameterRange): Object that supports conversion
-            between human-readable range and machine-readable [0,1] range.
-        value (chex.Array): initial value of this parameter in the human-readable range.
-    """
-
-    name: str
-    range: ModuleParameterRange
-    value: chex.Array
-
-    def setup(self):
-        self._value = self.param(
-            self.name,
-            lambda _: self.value
-        )
-
-    def from_0to1(self) -> chex.Array:
-        """
-        Get the value of this parameter in the human-readable range.
-        """
-        return from_0to1(self._value, self.range)
-
-    def __repr__(self):
-        return f"ModuleParameter({self.__dict__})"

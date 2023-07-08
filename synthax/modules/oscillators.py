@@ -41,9 +41,9 @@ class VCO(SynthModule):
 
     Args:
         config (SynthConfig): See :class:`~synthax.module.SynthModule`
-        tuning (ParameterSpec): TODO
-        mod_depth (ParameterSpec): TODO
-        initial_phase (ParameterSpec): TODO
+        tuning (ParameterSpec): Accepts a parameter range, initial values or both.
+        mod_depth (ParameterSpec): Accepts a parameter range, initial values or both.
+        initial_phase (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     tuning: Optional[ParameterSpec] = ModuleParameterRange(
@@ -70,17 +70,20 @@ class VCO(SynthModule):
         Generates audio signal from modulation signal.
 
         Args:
-            midi_f0 (TODO): Fundamental of note in midi note value (0 - 127).
-            mod_signal (TODO): Modulation signal to apply to the pitch.
+            midi_f0 (chex.Array): Fundamental of note in midi note value (0 - 127).
+            mod_signal (synthax.types.Signal): Modulation signal to apply to the pitch.
         """
 
-        control_as_frequency = self.make_control_as_frequency(midi_f0, mod_signal) # TODO: Slow
-        cosine_argument = self.make_argument(control_as_frequency) # TODO: Slow
+        # TODO: improve performance
+        control_as_frequency = self.make_control_as_frequency(midi_f0, mod_signal)
+        # TODO: improve performance
+        cosine_argument = self.make_argument(control_as_frequency)
         cosine_argument += jnp.expand_dims(
             self._initial_phase,
             axis=1
         )
-        signal = self.oscillator(cosine_argument, midi_f0) # TODO: Slow
+        # TODO: improve performance
+        signal = self.oscillator(cosine_argument, midi_f0)
         return signal
 
     def make_control_as_frequency(
@@ -93,8 +96,8 @@ class VCO(SynthModule):
         fundamental pitch and pitch-modulation signal.
 
         Args:
-            midi_f0 (TODO): Fundamental pitch value in midi.
-            mod_signal (TODO): Pitch modulation signal in midi.
+            midi_f0 (chex.Array): Fundamental pitch value in midi.
+            mod_signal (synthax.types.Signal): Pitch modulation signal in midi.
         """
         midi_f0 = jnp.expand_dims(
             midi_f0 + self._tuning,
@@ -123,7 +126,7 @@ class VCO(SynthModule):
         generate an audio signal.
 
         Args:
-            freq (TODO): Time-varying instantaneous frequency in Hz.
+            freq (synthax.types.Signal): Time-varying instantaneous frequency in Hz.
         """
         return jnp.cumsum(2 * jnp.pi * freq / self.sample_rate, axis=1)
 
@@ -133,7 +136,7 @@ class VCO(SynthModule):
         implemented by the child class.
 
         Args:
-            argument (TODO): The phase of the oscillator at each time sample.
+            argument (synthax.types.Signal): The phase of the oscillator at each time sample.
         """
         raise NotImplementedError("Derived classes must override this method")
 
@@ -151,7 +154,7 @@ class SineVCO(VCO):
         A cosine oscillator.
 
         Args:
-            argument (TODO): The phase of the oscillator at each time sample.
+            argument (synthax.types.Signal): The phase of the oscillator at each time sample.
         """
         return jnp.cos(argument)
 
@@ -180,8 +183,8 @@ class FmVCO(VCO):
     def __call__(self, midi_f0: chex.Array, mod_signal: Signal) -> Signal:
         """
         Args:
-            midi_f0 (TODO): note value in midi
-            mod_signal (TODO): audio rate frequency modulation signal
+            midi_f0 (chex.Array): note value in midi
+            mod_signal (synthax.types.Signal): audio rate frequency modulation signal
         """
         return super().__call__(midi_f0, mod_signal)
 
@@ -194,8 +197,8 @@ class FmVCO(VCO):
         Creates a time-varying control signal in instantaneous frequency (Hz).
 
         Args:
-            midi_f0 (TODO): Fundamental frequency in midi.
-            mod_signal (TODO): FM modulation signal (interpreted as modulation index).
+            midi_f0 (chex.Array): Fundamental frequency in midi.
+            mod_signal (synthax.types.Signal): FM modulation signal (interpreted as modulation index).
         """
         # Compute modulation in Hz space (rather than midi-space).
         f0_hz = jnp.expand_dims(
@@ -216,7 +219,7 @@ class FmVCO(VCO):
         A cosine oscillator. ...Good ol' cosine.
 
         Args:
-            argument (TODO): The phase of the oscillator at each time sample.
+            argument (synthax.types.Signal): The phase of the oscillator at each time sample.
         """
         return jnp.cos(argument)
 
@@ -235,10 +238,10 @@ class SquareSawVCO(VCO):
 
     Args:
         config (SynthConfig): See :class:`~synthax.module.SynthModule`
-        tuning (ParameterSpec): TODO
-        mod_depth (ParameterSpec): TODO
-        initial_phase (ParameterSpec): TODO
-        shape (ParameterSpec): TODO
+        tuning (ParameterSpec): Accepts a parameter range, initial values or both.
+        mod_depth (ParameterSpec): Accepts a parameter range, initial values or both.
+        initial_phase (ParameterSpec): Accepts a parameter range, initial values or both.
+        shape (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     tuning: Optional[ParameterSpec] = ModuleParameterRange(
@@ -265,8 +268,8 @@ class SquareSawVCO(VCO):
         Generates output square/saw audio given a phase argument.
 
         Args:
-            argument (TODO): The phase of the oscillator at each time sample.
-            midi_f0 (TODO): Fundamental frequency in midi.
+            argument (synthax.types.Signal): The phase of the oscillator at each time sample.
+            midi_f0 (chex.Array): Fundamental frequency in midi.
         """
         partials = jnp.expand_dims(self.partials_constant(midi_f0), axis=1)
         square = jnp.tanh(jnp.pi * partials * jnp.sin(argument) / 2)
@@ -282,7 +285,7 @@ class SquareSawVCO(VCO):
         audible aliasing.
 
         Args:
-            midi_f0 (TODO): Fundamental frequency in midi.
+            midi_f0 (chex.Array): Fundamental frequency in midi.
         """
         max_pitch = (
             midi_f0 + self._tuning + jnp.maximum(self._mod_depth, 0)
@@ -295,33 +298,22 @@ class Noise(SynthModule):
     """
     Generates white noise that is the same length as the buffer.
 
-    TODO:
-
-    For performance noise is pre-computed. In order to maintain
-    reproducibility noise must be computed on the CPU and then transferred
-    to the GPU, if a GPU is being used. We pre-compute
-    :attr:`~synthax.config.BASE_REPRODUCIBLE_BATCH_SIZE`
-    samples of noise and then repeat those for larger batch sizes.
-
-    To keep things fast we only support multiples of
-    :attr:`~synthax.config.BASE_REPRODUCIBLE_BATCH_SIZE`
-    when reproducibility mode is enabled. For example, if you batch size
-    is 4 times :attr:`~synthax.config.BASE_REPRODUCIBLE_BATCH_SIZE`, then
-    you get the same noise signals repeated 4 times.
-
     `Note`: If you have multiple `Noise` modules in the same
     :class:`~synthax.synth.BaseSynth`, make sure you instantiate
     each `Noise` with a unique seed.
 
     Args:
         config (SynthConfig): See :class:`~synthax.module.SynthModule`
+        seed (int): Seed for the random number generator.
     """
+
+    seed: int = 0
 
     def setup(self):
         def make_noise():
             return jnp.broadcast_to(
                 jax.random.uniform(
-                    self.make_rng("params"),
+                    jax.random.PRNGKey(self.seed),
                     shape=(1, self.buffer_size),
                     minval=-1.0,
                     maxval=1.0

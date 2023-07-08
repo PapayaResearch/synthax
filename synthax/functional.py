@@ -30,7 +30,7 @@ def midi_to_hz(midi: chex.Array) -> chex.Array:
     Convert from midi (linear pitch) to frequency in Hz.
 
     Args:
-        midi (TODO): Linear pitch on the MIDI scale.
+        midi (chex.Array): Linear pitch on the MIDI scale.
 
     Return:
         Frequency in Hz.
@@ -39,7 +39,7 @@ def midi_to_hz(midi: chex.Array) -> chex.Array:
 
 def normalize_if_clipping(signal: Signal) -> Signal:
     """
-    Only normalize invidiaul signals in batch that have samples
+    Only normalize individual signals in batch that have samples
     less than -1.0 or greater than 1.0
     """
     max_sample = jnp.max(jnp.abs(signal), axis=1, keepdims=True)[0]
@@ -52,4 +52,3 @@ def normalize(signal: Signal) -> Signal:
     """
     max_sample = jnp.max(jnp.abs(signal), axis=1, keepdims=True)[0]
     return signal / max_sample
-

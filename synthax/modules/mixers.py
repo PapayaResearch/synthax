@@ -40,7 +40,7 @@ class ModulationMixer(SynthModule):
         config (:class:`~synthax.config.SynthConfig`): Configuration.
         n_input (int): Number of input signals to module mix.
         n_output (int): Number of output signals to generate.
-        mod (ParameterSpec): TODO.
+        mod (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     n_input: int
@@ -81,7 +81,7 @@ class ModulationMixer(SynthModule):
         # modulation = modulation.reshape(self.n_output, -1, modulation.shape[-1])
         # return modulation
 
-        # TODO: Loop slow when jitted
+        # TODO: avoid loop to improve jitted performance.
         return tuple(m.squeeze(1) for m in modulation)
 
 class AudioMixer(SynthModule):
@@ -91,8 +91,8 @@ class AudioMixer(SynthModule):
 
     Args:
         config (:class:`~synthax.config.SynthConfig`): Configuration.
-        n_input (int): TODO
-        level (ParameterSpec): TODO
+        n_input (int): Number of inputs.
+        level (ParameterSpec): Accepts a parameter range, initial values or both, for all inputs equally.
     """
 
     n_input: int
@@ -119,13 +119,15 @@ class AudioMixer(SynthModule):
         """
         Returns a mixed signal from an array of input signals.
         """
-        signals = jnp.stack(signals, axis=1) # TODO: Slow stack
+        # TODO: improve performance
+        signals = jnp.stack(signals, axis=1)
 
+        # TODO: improve performance
         mixed_signal = normalize_if_clipping(
             jnp.matmul(
                 jnp.expand_dims(self._level, 1),
                 signals
-            ).squeeze(1) # TODO: Slow matmul
-        ) # TODO: Slow normalize_if_clipping
+            ).squeeze(1)
+        )
 
         return mixed_signal

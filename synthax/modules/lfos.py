@@ -44,14 +44,14 @@ class LFO(ControlRateModule):
             soft-max selector for LFO shapes. Higher values will tend to favour
             one LFO shape over all others. Lower values will result in a more
             even blend of LFO shapes.
-        frequency (ParameterSpec): TODO
-        mod_depth (ParameterSpec): TODO
-        initial_phase (ParameterSpec): TODO
-        sin (ParameterSpec): TODO
-        tri (ParameterSpec): TODO
-        saw (ParameterSpec): TODO
-        rsaw (ParameterSpec): TODO
-        sqr (ParameterSpec): TODO
+        frequency (ParameterSpec): Accepts a parameter range, initial values or both.
+        mod_depth (ParameterSpec): Accepts a parameter range, initial values or both.
+        initial_phase (ParameterSpec): Accepts a parameter range, initial values or both.
+        sin (ParameterSpec): Accepts a parameter range, initial values or both.
+        tri (ParameterSpec): Accepts a parameter range, initial values or both.
+        saw (ParameterSpec): Accepts a parameter range, initial values or both.
+        rsaw (ParameterSpec): Accepts a parameter range, initial values or both.
+        sqr (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
     exponent: chex.Array = jnp.exp(1) # e
@@ -115,7 +115,7 @@ class LFO(ControlRateModule):
         shapes = jnp.stack(self.make_lfo_shapes(argument), axis=1)
 
         # Apply mode selection to the LFO shapes
-        # TODO: Loops are typically slow when jitted
+        # TODO: avoid loop to improve jitted performance.
         mode = jnp.stack(
             [getattr(self, lfo) for lfo in self.lfo_types],
             axis=1
