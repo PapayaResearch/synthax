@@ -20,9 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import jax
 import jax.numpy as jnp
 import chex
-from synthax.types import Signal
+from synthax.types import ModuleParameterRange, Signal
 
 
 def midi_to_hz(midi: chex.Array) -> chex.Array:
@@ -52,3 +53,22 @@ def normalize(signal: Signal) -> Signal:
     """
     max_sample = jnp.max(jnp.abs(signal), axis=1, keepdims=True)[0]
     return signal / max_sample
+
+
+def apply_curve_to_unnormalized(
+    value: jax.typing.ArrayLike,
+    range: ModuleParameterRange
+) -> jax.typing.ArrayLike:
+    """
+    Apply a curve to a value
+    """
+
+    normalized = (value - range.minimum) / (range.maximum - range.minimum)
+
+    if not range.symmetric:
+        normalized = jnp.power(normalized, range.curve)
+        return (normalized * (range.maximum - range.minimum)) + range.minimum
+
+    dist = 2.0 * normalized - 1.0
+    normalized = (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0
+    return (normalized * (range.maximum - range.minimum)) + range.minimum

@@ -79,6 +79,12 @@ class SynthModule(nn.Module):
                 parameter_range = parameter_spec.range_
                 value = parameter_spec.value
 
+            setattr(
+                self,
+                "_"+name+"_range",
+                parameter_range
+            )
+
             return value
 
         setattr(

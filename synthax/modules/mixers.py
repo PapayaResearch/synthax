@@ -25,8 +25,7 @@ import jax.numpy as jnp
 import dataclasses
 from synthax.modules.base import SynthModule
 from synthax.parameter import ModuleParameterRange
-from synthax.config import SynthConfig
-from synthax.functional import normalize_if_clipping
+from synthax.functional import apply_curve_to_unnormalized, normalize_if_clipping
 from synthax.types import Signal, ParameterSpec
 from typing import Optional
 
@@ -48,7 +47,7 @@ class ModulationMixer(SynthModule):
     mod: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
-        curve=0.5,
+        curve=0.5
     )
 
     def setup(self):
@@ -71,8 +70,9 @@ class ModulationMixer(SynthModule):
 
         signals = jnp.stack(signals, axis=1)
 
+        mod = apply_curve_to_unnormalized(self._mod, self._mod_range)
         modulation = jnp.array_split(
-            jnp.matmul(self._mod, signals),
+            jnp.matmul(mod, signals),
             self.n_output,
             axis=1
         )
@@ -83,6 +83,7 @@ class ModulationMixer(SynthModule):
 
         # TODO: avoid loop to improve jitted performance.
         return tuple(m.squeeze(1) for m in modulation)
+
 
 class AudioMixer(SynthModule):
     """
@@ -122,10 +123,12 @@ class AudioMixer(SynthModule):
         # TODO: improve performance
         signals = jnp.stack(signals, axis=1)
 
+        level = apply_curve_to_unnormalized(self._level, self._level_range)
+
         # TODO: improve performance
         mixed_signal = normalize_if_clipping(
             jnp.matmul(
-                jnp.expand_dims(self._level, 1),
+                jnp.expand_dims(level, 1),
                 signals
             ).squeeze(1)
         )

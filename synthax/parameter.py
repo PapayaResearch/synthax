@@ -50,9 +50,9 @@ class ModuleParameterRange:
             closer to :math:`(maximum - minimum)/2`.
     """
 
-    minimum: float
-    maximum: float
-    curve: float = 1.0
+    minimum: jax.typing.ArrayLike
+    maximum: jax.typing.ArrayLike
+    curve: jax.typing.ArrayLike = 1.0
     symmetric: bool = False
 
 class ModuleParameterSpec(NamedTuple):

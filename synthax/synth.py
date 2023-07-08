@@ -24,12 +24,11 @@
 :class:`~synthax.module.SynthModule` wired together form a modular synthesizer.
 """
 
-import os
-import yaml
-import jax
+import jax.numpy as jnp
 import chex
 from flax import linen as nn
 from synthax.config import SynthConfig
+from synthax.parameter import ModuleParameterRange
 
 from synthax.modules.oscillators import SineVCO, FmVCO, SquareSawVCO, Noise
 from synthax.modules.envelopes import ADSR
@@ -245,6 +244,11 @@ class Voice(BaseSynth):
             ("vca", VCA, {}),
             ("mixer", AudioMixer, {
                 "n_input": 3,
+                "level": ModuleParameterRange(
+                    minimum=0,
+                    maximum=1,
+                    curve=jnp.array([1, 1, 0.025]) # 0.025 is for noise
+                )
             })
         ]
 
