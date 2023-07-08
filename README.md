@@ -18,17 +18,14 @@ from synthax.config import SynthConfig
 from synthax.synth import ParametricSynth
 
 # Generate PRNG key
-key = jax.random.PRNGKey(42)
 config = SynthConfig(
     batch_size=16,
     sample_rate=44100,
     buffer_size_seconds=4.0
 )
 
-key, subkey = jax.random.split(key)
 # Instantiate synthesizer
 synth = ParametricSynth(
-    PRNG_key=subkey,
     config=config,
     sine=1,
     square_saw=1,
@@ -36,9 +33,9 @@ synth = ParametricSynth(
     fm_square_saw=0
 )
 
-key, subkey = jax.random.split(key)
 # Initialize and run
-params = synth.init(subkey)
+key = jax.random.PRNGKey(42)
+params = synth.init(key)
 audio = jax.jit(synth.apply)(params)
 ```
 
