@@ -24,7 +24,7 @@ import jax
 import jax.numpy as jnp
 import chex
 from synthax.modules.base import ControlRateModule
-from synthax.parameter import ModuleParameterRange
+from synthax.parameter import ModuleParameterRange, from_0to1
 from synthax.config import SynthConfig
 from synthax.types import ParameterSpec, Signal
 from typing import Optional
@@ -107,7 +107,7 @@ class LFO(ControlRateModule):
         frequency = self.make_control(mod_signal)
         argument = jnp.cumsum(2 * jnp.pi * frequency / self.control_rate, axis=1)
         argument += jnp.expand_dims(
-            self._initial_phase,
+            from_0to1(self._initial_phase, self._initial_phase_range),
             axis=1
         )
 
@@ -135,7 +135,7 @@ class LFO(ControlRateModule):
                 LFO base rate; negative values decrease it.
         """
         frequency = jnp.expand_dims(
-            self._frequency,
+            from_0to1(self._frequency, self._frequency_range),
             axis=1
         )
 
@@ -145,7 +145,8 @@ class LFO(ControlRateModule):
             return jnp.broadcast_to(frequency, (frequency.shape[0], self.control_buffer_size))
 
         modulation = jnp.expand_dims(
-            self._mod_depth, axis=1
+            from_0to1(self._mod_depth, self._mod_depth_range),
+            axis=1
         ) * mod_signal
 
         return jnp.maximum(frequency + modulation, 0.0)

@@ -26,7 +26,7 @@ import chex
 import dataclasses
 from flax import linen as nn
 from synthax.modules.base import SynthModule
-from synthax.parameter import ModuleParameterRange
+from synthax.parameter import ModuleParameterRange, from_0to1
 from synthax.config import SynthConfig
 from synthax.types import ParameterSpec
 from typing import Optional
@@ -81,7 +81,10 @@ class SoftModeSelector(SynthModule):
 
     def __call__(self):
         # Normalize all mode weights so they sum to 1.0
-        values_exp = jnp.power(self._mode, self.exponent[0])
+        values_exp = jnp.power(
+            from_0to1(self._mode, self._mode_range),
+            self.exponent[0]
+        )
         return values_exp / jnp.sum(values_exp, axis=0)
 
 
@@ -116,5 +119,6 @@ class HardModeSelector(SynthModule):
         self._init_param("mode", default_range, initializer)
 
     def __call__(self):
-        idx = jnp.argmax(self._mode, axis=0)
-        return jax.nn.one_hot(idx, num_classes=len(self._mode)).T
+        mode = from_0to1(self._mode, self._mode_range)
+        idx = jnp.argmax(mode, axis=0)
+        return jax.nn.one_hot(idx, num_classes=len(mode)).T

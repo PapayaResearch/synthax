@@ -22,9 +22,10 @@
 
 import jax
 import jax.numpy as jnp
+import flax
 import chex
-from synthax.types import ModuleParameterRange, Signal
-
+from typing import Tuple
+from synthax.types import Signal
 
 def midi_to_hz(midi: chex.Array) -> chex.Array:
     """
@@ -55,20 +56,20 @@ def normalize(signal: Signal) -> Signal:
     return signal / max_sample
 
 
-def apply_curve_to_unnormalized(
-    value: jax.typing.ArrayLike,
-    range: ModuleParameterRange
-) -> jax.typing.ArrayLike:
+def flatten_params(
+        params: flax.core.frozen_dict.FrozenDict
+) -> Tuple[dict, chex.Array]:
     """
-    Apply a curve to a value
+    Takes flax params and returns flat keys and batch of values
     """
+    flat_dict = flax.traverse_util.flatten_dict(params)
+    keys = flat_dict.keys()
+    values = jnp.array(list(flat_dict.values()))
+    return keys, values
 
-    normalized = (value - range.minimum) / (range.maximum - range.minimum)
-
-    if not range.symmetric:
-        normalized = jnp.power(normalized, range.curve)
-        return (normalized * (range.maximum - range.minimum)) + range.minimum
-
-    dist = 2.0 * normalized - 1.0
-    normalized = (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0
-    return (normalized * (range.maximum - range.minimum)) + range.minimum
+def unflatten_params(keys: dict, values: chex.Array) -> dict:
+    """
+    Reconstructs the params from keys and values. It can be
+    passed to functions expecting a FrozenDict, but it's not frozen.
+    """
+    return flax.traverse_util.unflatten_dict(dict(zip(keys, values)))

@@ -25,6 +25,8 @@ Parameters for DDSP Modules
 """
 
 import jax
+import chex
+import jax.numpy as jnp
 from flax import struct
 from typing import NamedTuple
 
@@ -58,3 +60,41 @@ class ModuleParameterRange:
 class ModuleParameterSpec(NamedTuple):
     range_: ModuleParameterRange
     value: jax.typing.ArrayLike
+
+def from_0to1(normalized: chex.Array, range: ModuleParameterRange) -> jax.typing.ArrayLike:
+    """
+    Set value of this parameter using a normalized value in the range [0,1]
+    Args:
+        normalized (chex.Array): value within machine-readable range [0, 1] to convert to
+            human-readable range [minimum, maximum].
+    """
+    if not range.symmetric:
+        normalized = jnp.exp2(jnp.log2(normalized) / range.curve)
+        return range.minimum + (range.maximum - range.minimum) * normalized
+
+    # Compute the curve for a symmetric curve
+    dist = 2.0 * normalized - 1.0
+    if range.curve != 1.0:
+        normalized = jnp.where(
+            dist == 0.0,
+            dist,
+            jnp.exp2(jnp.log2(jnp.abs(dist)) / range.curve) * jnp.sign(dist),
+        )
+
+    return range.minimum + (range.maximum - range.minimum) / 2.0 * (normalized + 1.0)
+
+
+def to_0to1(value: chex.Array, range: ModuleParameterRange) -> jax.typing.ArrayLike:
+    """
+    Convert from human-readable range [minimum, maximum] to machine-range [0, 1].
+    Args:
+        value (chex.Array): value within the range defined by minimum and maximum
+    """
+    normalized = (value - range.minimum) / (range.maximum - range.minimum)
+
+    if not range.symmetric:
+        normalized = jnp.power(normalized, range.curve)
+        return normalized
+
+    dist = 2.0 * normalized - 1.0
+    return (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0

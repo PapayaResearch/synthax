@@ -24,7 +24,7 @@ import jax
 import jax.numpy as jnp
 import chex
 from synthax.modules.base import SynthModule
-from synthax.parameter import ModuleParameterRange
+from synthax.parameter import ModuleParameterRange, from_0to1
 from synthax.config import SynthConfig
 from synthax.functional import midi_to_hz
 from synthax.types import Signal, ParameterSpec
@@ -79,7 +79,7 @@ class VCO(SynthModule):
         # TODO: improve performance
         cosine_argument = self.make_argument(control_as_frequency)
         cosine_argument += jnp.expand_dims(
-            self._initial_phase,
+            from_0to1(self._initial_phase, self._initial_phase_range),
             axis=1
         )
         # TODO: improve performance
@@ -100,7 +100,7 @@ class VCO(SynthModule):
             mod_signal (synthax.types.Signal): Pitch modulation signal in midi.
         """
         midi_f0 = jnp.expand_dims(
-            midi_f0 + self._tuning,
+            midi_f0 + from_0to1(self._tuning, self._tuning_range),
             axis=1
         )
 
@@ -114,7 +114,7 @@ class VCO(SynthModule):
         # If there is modulation, then add that to the fundamental,
         # clamp to a range [0.0, 127.0], then return in frequency Hz.
         modulation = jnp.expand_dims(
-            self._mod_depth,
+            from_0to1(self._mod_depth, self._mod_depth_range),
             axis=1
         ) * mod_signal
         control = jax.lax.clamp(0.0, midi_f0 + modulation, 127.0)
@@ -203,12 +203,12 @@ class FmVCO(VCO):
         # Compute modulation in Hz space (rather than midi-space).
         f0_hz = jnp.expand_dims(
             midi_to_hz(
-                midi_f0 + self._tuning
+                midi_f0 + from_0to1(self._tuning, self._tuning_range),
             ),
             axis=1
         )
         fm_depth = jnp.expand_dims(
-            self._mod_depth,
+            from_0to1(self._mod_depth, self._mod_depth_range),
             axis=1
         ) * f0_hz
         modulation_hz = fm_depth * mod_signal
@@ -273,7 +273,10 @@ class SquareSawVCO(VCO):
         """
         partials = jnp.expand_dims(self.partials_constant(midi_f0), axis=1)
         square = jnp.tanh(jnp.pi * partials * jnp.sin(argument) / 2)
-        shape = jnp.expand_dims(self._shape, axis=1)
+        shape = jnp.expand_dims(
+            from_0to1(self._shape, self._shape_range),
+            axis=1
+        )
         return (1 - shape / 2) * square * (1 + shape * jnp.cos(argument))
 
     def partials_constant(self, midi_f0):
@@ -287,8 +290,11 @@ class SquareSawVCO(VCO):
         Args:
             midi_f0 (chex.Array): Fundamental frequency in midi.
         """
+        tuning = from_0to1(self._tuning, self._tuning_range)
+        mod_depth = from_0to1(self._mod_depth, self._mod_depth_range)
+
         max_pitch = (
-            midi_f0 + self._tuning + jnp.maximum(self._mod_depth, 0)
+            midi_f0 + tuning + jnp.maximum(mod_depth, 0)
         )
         max_f0 = midi_to_hz(max_pitch)
         return 12000 / (max_f0 * jnp.log10(max_f0))

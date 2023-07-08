@@ -26,7 +26,7 @@ import chex
 import dataclasses
 from flax import linen as nn
 from synthax.config import SynthConfig
-from synthax.parameter import ModuleParameterRange, ModuleParameterSpec
+from synthax.parameter import ModuleParameterRange, ModuleParameterSpec, to_0to1
 from synthax.types import Signal, is_parameter_spec
 
 
@@ -85,7 +85,8 @@ class SynthModule(nn.Module):
                 parameter_range
             )
 
-            return value
+            # Save value in 0-1 range
+            return to_0to1(value, parameter_range)
 
         setattr(
             self,
