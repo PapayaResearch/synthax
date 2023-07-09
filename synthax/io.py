@@ -40,6 +40,7 @@ def write_synthspec(
     outfile: str,
     synth: BaseSynth,
     params: Optional[dict] = None,
+    PRNGkey: Optional[jax.random.PRNGKey] = None,
     format: str = "yaml",
     **kwargs
 ):
@@ -72,7 +73,9 @@ def write_synthspec(
 
     if synth is not None:
         outd["config"] = synth.config.__dict__
-        outd["prng_key"] = synth.PRNG_key.tolist()[-1]
+
+    if PRNGkey is not None:
+        outd["prng_key"] = PRNG_key.tolist()[-1]
 
     outdata = None
     if format in ("yaml", "yml"):

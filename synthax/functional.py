@@ -54,22 +54,3 @@ def normalize(signal: Signal) -> Signal:
     """
     max_sample = jnp.max(jnp.abs(signal), axis=1, keepdims=True)[0]
     return signal / max_sample
-
-
-def flatten_params(
-        params: flax.core.frozen_dict.FrozenDict
-) -> Tuple[dict, chex.Array]:
-    """
-    Takes flax params and returns flat keys and batch of values
-    """
-    flat_dict = flax.traverse_util.flatten_dict(params)
-    keys = flat_dict.keys()
-    values = jnp.array(list(flat_dict.values()))
-    return keys, values
-
-def unflatten_params(keys: dict, values: chex.Array) -> dict:
-    """
-    Reconstructs the params from keys and values. It can be
-    passed to functions expecting a FrozenDict, but it's not frozen.
-    """
-    return flax.traverse_util.unflatten_dict(dict(zip(keys, values)))
