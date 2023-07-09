@@ -64,7 +64,7 @@ class LFO(ControlRateModule):
         minimum=-10.0,
         maximum=20.0,
         curve=0.5,
-        symmetric=True,
+        symmetric=True
     )
     initial_phase: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=-jnp.pi,

@@ -57,9 +57,55 @@ class ModuleParameterRange:
     curve: jax.typing.ArrayLike = 1.0
     symmetric: bool = False
 
+
 class ModuleParameterSpec(NamedTuple):
     range_: ModuleParameterRange
     value: jax.typing.ArrayLike
+
+
+def apply_asymmetricfrom(
+    normalized: jax.typing.ArrayLike,
+    curve: jax.typing.ArrayLike,
+    range: ModuleParameterRange
+) -> jax.typing.ArrayLike:
+    apply_curve = lambda normalized, curve: jnp.exp2(jnp.log2(normalized) / curve)
+    normalized = jax.lax.cond(curve, apply_curve, lambda x, _: x, normalized, range.curve)
+    return range.minimum + (range.maximum - range.minimum) * normalized
+
+
+def apply_symmetricfrom(
+    normalized: jax.typing.ArrayLike,
+    curve: jax.typing.ArrayLike,
+    range: ModuleParameterRange
+) -> jax.typing.ArrayLike:
+    dist = 2.0 * normalized - 1.0
+    apply_curve = lambda dist, curve: jnp.where(
+        dist == 0.0,
+        dist,
+        jnp.exp2(jnp.log2(jnp.abs(dist)) / curve) * jnp.sign(dist)
+    )
+    normalized = jax.lax.cond(curve, apply_curve, lambda x, _: x, dist, range.curve)
+    return range.minimum + (range.maximum - range.minimum) / 2.0 * (normalized + 1.0)
+
+
+def apply_asynmetricto(normalized: jax.typing.ArrayLike,
+    curve: jax.typing.ArrayLike,
+    range: ModuleParameterRange
+) -> jax.typing.ArrayLike:
+    apply_curve = lambda normalized, curve: jnp.power(normalized, curve)
+    normalized = jax.lax.cond(curve, apply_curve, lambda x, _: x, normalized, range.curve)
+    return normalized
+
+def apply_symmetricto(
+    normalized: jax.typing.ArrayLike,
+    curve: jax.typing.ArrayLike,
+    range: ModuleParameterRange
+) -> jax.typing.ArrayLike:
+    dist = 2.0 * normalized - 1.0
+    apply_curve = lambda dist, curve: (1.0 + jnp.power(jnp.abs(dist), curve) * jnp.sign(dist)) / 2.0
+    normalized = jax.lax.cond(curve, apply_curve, lambda x, _: x, dist, range.curve)
+    return normalized
+
 
 def from_0to1(normalized: chex.Array, range: ModuleParameterRange) -> jax.typing.ArrayLike:
     """
@@ -68,20 +114,9 @@ def from_0to1(normalized: chex.Array, range: ModuleParameterRange) -> jax.typing
         normalized (chex.Array): value within machine-readable range [0, 1] to convert to
             human-readable range [minimum, maximum].
     """
-    if not range.symmetric:
-        normalized = jnp.exp2(jnp.log2(normalized) / range.curve)
-        return range.minimum + (range.maximum - range.minimum) * normalized
+    curve = jnp.all(range.curve  == 1)
 
-    # Compute the curve for a symmetric curve
-    dist = 2.0 * normalized - 1.0
-    if range.curve != 1.0:
-        normalized = jnp.where(
-            dist == 0.0,
-            dist,
-            jnp.exp2(jnp.log2(jnp.abs(dist)) / range.curve) * jnp.sign(dist),
-        )
-
-    return range.minimum + (range.maximum - range.minimum) / 2.0 * (normalized + 1.0)
+    return jax.lax.cond(range.symmetric, apply_symmetricfrom, apply_asymmetricfrom, normalized, curve, range)
 
 
 def to_0to1(value: chex.Array, range: ModuleParameterRange) -> jax.typing.ArrayLike:
@@ -92,9 +127,6 @@ def to_0to1(value: chex.Array, range: ModuleParameterRange) -> jax.typing.ArrayL
     """
     normalized = (value - range.minimum) / (range.maximum - range.minimum)
 
-    if not range.symmetric:
-        normalized = jnp.power(normalized, range.curve)
-        return normalized
+    curve = jnp.all(range.curve  == 1)
 
-    dist = 2.0 * normalized - 1.0
-    return (1.0 + jnp.power(jnp.abs(dist), range.curve) * jnp.sign(dist)) / 2.0
+    return jax.lax.cond(range.symmetric, apply_symmetricto, apply_asynmetricto, normalized, curve, range)
