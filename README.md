@@ -2,7 +2,7 @@
 [![Pyversions](https://img.shields.io/pypi/pyversions/synthax.svg?style=flat-square)](https://pypi.python.org/pypi/synthax)
 [![PyPI version](https://badge.fury.io/py/synthax.svg)](https://badge.fury.io/py/synthax)
 ![PyPI - License](https://img.shields.io/pypi/l/synthax)
-![Paper](https://img.shields.io/badge/paper-AES.10680-red)
+[![Paper](https://img.shields.io/badge/paper-AES.10680-red)](https://www.aes.org/e-lib/browse.cfm?elib=22261)
 
 <h1 align="center">
   <a href="https://github.com/PapayaResearch/synthax/blob/main/media/logo.png">
@@ -61,12 +61,13 @@ In order to use JAX on your accelerators, you can find more details in the [JAX 
 If you use `synthax` in your research, please cite the following:
 
 ```
-@software{synthax2023,
-  author = {Cherep, Manuel and Singh, Nikhil},
-  title = {SynthAX: A Fast Modular Synthesizer in JAX},
-  url = {https://github.com/PapayaResearch/synthax},
-  version = {0.1.0},
-  year = {2023},
+@conference{cherep2023synthax,
+title = {SynthAX: A Fast Modular Synthesizer in JAX},
+author = {Cherep, Manuel and Singh, Nikhil},
+booktitle = {Audio Engineering Society Convention 155},
+month = {May},
+year = {2023},
+url = {http://www.aes.org/e-lib/browse.cfm?elib=22261}
 }
 ```
 
