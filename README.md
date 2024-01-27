@@ -9,7 +9,7 @@
     <img src="https://github.com/PapayaResearch/synthax/blob/main/media/logo.png?raw=true" width="400" /></a>
 </h1>
 
-Accelerating audio synthesis far beyond realtime speeds has a significant role to play in advancing intelligent audio production techniques. SynthAX is a fast virtual modular synthesizer written in JAX. At its peak, SynthAX generates audio over 80,000 times faster than realtime, and significantly faster than the state-of-the-art in accelerated sound synthesis. It leverages massive vectorization and high-throughput accelerators. You can get started here [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PapayaResearch/synthax/blob/main/examples/walkthrough.ipynb)
+Accelerating audio synthesis far beyond realtime speeds has a significant role to play in advancing intelligent audio production techniques. SynthAX is a fast virtual modular synthesizer written in JAX. At its peak, SynthAX generates audio over 90,000 times faster than realtime, and significantly faster than the state-of-the-art in accelerated sound synthesis. It leverages massive vectorization and high-throughput accelerators. You can get started here [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PapayaResearch/synthax/blob/main/examples/walkthrough.ipynb)
 
 ## Basic `synthax` API Usage
 
