@@ -114,7 +114,7 @@ def from_0to1(normalized: chex.Array, range: ModuleParameterRange) -> jax.typing
         normalized (chex.Array): value within machine-readable range [0, 1] to convert to
             human-readable range [minimum, maximum].
     """
-    curve = jnp.all(range.curve  == 1)
+    curve = jnp.all(range.curve != 1)
 
     return jax.lax.cond(range.symmetric, apply_symmetricfrom, apply_asymmetricfrom, normalized, curve, range)
 
@@ -127,6 +127,6 @@ def to_0to1(value: chex.Array, range: ModuleParameterRange) -> jax.typing.ArrayL
     """
     normalized = (value - range.minimum) / (range.maximum - range.minimum)
 
-    curve = jnp.all(range.curve  == 1)
+    curve = jnp.all(range.curve != 1)
 
     return jax.lax.cond(range.symmetric, apply_symmetricto, apply_asynmetricto, normalized, curve, range)

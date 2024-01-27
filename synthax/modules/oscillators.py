@@ -53,7 +53,8 @@ class VCO(SynthModule):
     mod_depth: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=-96.0,
         maximum=96.0,
-        curve=0.2
+        curve=0.2,
+        symmetric=True
     )
     initial_phase: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=-jnp.pi,
@@ -243,19 +244,6 @@ class SquareSawVCO(VCO):
         shape (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
-    tuning: Optional[ParameterSpec] = ModuleParameterRange(
-        minimum=-24.0,
-        maximum=24.0,
-    )
-    mod_depth: Optional[ParameterSpec] = ModuleParameterRange(
-        minimum=-96.0,
-        maximum=96.0,
-        curve=0.2
-    )
-    initial_phase: Optional[ParameterSpec] = ModuleParameterRange(
-        minimum=-jnp.pi,
-        maximum=jnp.pi,
-    )
     shape: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=1.0,
