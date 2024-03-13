@@ -60,14 +60,14 @@ In order to use JAX on your accelerators, you can find more details in the [JAX 
 
 If you use `synthax` in your research, please cite the following:
 
-```
+```bibtex
 @conference{cherep2023synthax,
-title = {SynthAX: A Fast Modular Synthesizer in JAX},
-author = {Cherep, Manuel and Singh, Nikhil},
-booktitle = {Audio Engineering Society Convention 155},
-month = {May},
-year = {2023},
-url = {http://www.aes.org/e-lib/browse.cfm?elib=22261}
+    title = {SynthAX: A Fast Modular Synthesizer in JAX},
+    author = {Cherep, Manuel and Singh, Nikhil},
+    booktitle = {Audio Engineering Society Convention 155},
+    month = {May},
+    year = {2023},
+    url = {http://www.aes.org/e-lib/browse.cfm?elib=22261}
 }
 ```
 
