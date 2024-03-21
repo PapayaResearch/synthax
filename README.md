@@ -18,7 +18,7 @@ import jax
 from synthax.config import SynthConfig
 from synthax.synth import ParametricSynth
 
-# Generate PRNG key
+# Instantiate config
 config = SynthConfig(
     batch_size=16,
     sample_rate=44100,
