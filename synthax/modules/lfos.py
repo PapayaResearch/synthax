@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import math
 import jax
 import jax.numpy as jnp
 import chex
@@ -40,7 +41,7 @@ class LFO(ControlRateModule):
 
     Args:
         config (SynthConfig): See :class:`~synthax.module.SynthConfig`.
-        exponent: A non-negative value that determines the discrimination of the
+        exponent (float): A non-negative value that determines the discrimination of the
             soft-max selector for LFO shapes. Higher values will tend to favour
             one LFO shape over all others. Lower values will result in a more
             even blend of LFO shapes.
@@ -54,7 +55,7 @@ class LFO(ControlRateModule):
         sqr (ParameterSpec): Accepts a parameter range, initial values or both.
     """
 
-    exponent: chex.Array = jnp.exp(1) # e
+    exponent: float = math.exp(1) # e
     frequency: Optional[ParameterSpec] = ModuleParameterRange(
         minimum=0.0,
         maximum=20.0,
